@@ -1,0 +1,176 @@
+/* Markdown prose styling - separate module to prevent overwriting on npm install */
+.markdown {
+  max-width: 65ch;
+  color: inherit;
+}
+
+.markdown h1 {
+  font-size: 2.25em;
+  margin-top: 0;
+  margin-bottom: 0.8888889em;
+  line-height: 1.1111111;
+  font-weight: 800;
+  color: inherit;
+}
+
+.markdown h2 {
+  font-size: 1.5em;
+  margin-top: 2em;
+  margin-bottom: 1em;
+  line-height: 1.3333333;
+  font-weight: 700;
+  color: inherit;
+}
+
+.markdown h3 {
+  font-size: 1.25em;
+  margin-top: 1.6em;
+  margin-bottom: 0.6em;
+  line-height: 1.6;
+  font-weight: 600;
+  color: inherit;
+}
+
+.markdown h4 {
+  font-size: 1.125em;
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+  font-weight: 600;
+  color: inherit;
+}
+
+.markdown p {
+  margin-top: 1.25em;
+  margin-bottom: 1.25em;
+  line-height: 1.75;
+}
+
+.markdown ul, .markdown ol {
+  margin-top: 1.25em;
+  margin-bottom: 1.25em;
+  padding-left: 1.625em;
+}
+
+.markdown li {
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+}
+
+.markdown strong {
+  font-weight: 600;
+  color: inherit;
+}
+
+.markdown em {
+  font-style: italic;
+}
+
+.markdown code {
+  background-color: rgba(0, 0, 0, 0.05);
+  padding: 0.2em 0.4em;
+  border-radius: 0.25em;
+  font-size: 0.875em;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.markdown pre {
+  background-color: rgba(0, 0, 0, 0.05);
+  padding: 1em;
+  border-radius: 0.5em;
+  overflow-x: auto;
+  margin-top: 1.7142857em;
+  margin-bottom: 1.7142857em;
+}
+
+.markdown pre code {
+  background-color: transparent;
+  padding: 0;
+}
+
+.markdown blockquote {
+  font-style: italic;
+  border-left: 0.25em solid #e5e7eb;
+  padding-left: 1em;
+  margin-top: 1.6em;
+  margin-bottom: 1.6em;
+  color: #6b7280;
+}
+
+.markdown a {
+  color: #3b82f6;
+  text-decoration: underline;
+  font-weight: 500;
+}
+
+.markdown a:hover {
+  color: #2563eb;
+}
+
+.markdown table {
+  width: 100%;
+  margin-top: 2em;
+  margin-bottom: 2em;
+  border-collapse: collapse;
+}
+
+.markdown th {
+  padding: 0.5em;
+  border-bottom: 2px solid #e5e7eb;
+  font-weight: 600;
+  text-align: left;
+}
+
+.markdown td {
+  padding: 0.5em;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.markdown hr {
+  border: none;
+  border-top: 1px solid #e5e7eb;
+  margin-top: 3em;
+  margin-bottom: 3em;
+}
+
+.markdown img {
+  max-width: 100%;
+  height: auto;
+  margin-top: 2em;
+  margin-bottom: 2em;
+}
+
+/* Dark mode */
+@media (prefers-color-scheme: dark) {
+  .markdown code {
+    background-color: rgba(255, 255, 255, 0.1);
+  }
+
+  .markdown pre {
+    background-color: rgba(255, 255, 255, 0.05);
+  }
+
+  .markdown blockquote {
+    border-left-color: #374151;
+    color: #9ca3af;
+  }
+
+  .markdown a {
+    color: #60a5fa;
+  }
+
+  .markdown a:hover {
+    color: #93c5fd;
+  }
+
+  .markdown th {
+    border-bottom-color: #374151;
+  }
+
+  .markdown td {
+    border-bottom-color: #374151;
+  }
+
+  .markdown hr {
+    border-top-color: #374151;
+  }
+}

@@ -1,0 +1,138 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "aimed"
+version = "0.1.0"
+authors = [
+    {name = "AIMED Contributors", email = "aimed.dashboard@gmail.com"}
+]
+description = "AIMED (AI Monitoring & Execution Dashboard) - Web interface for ConPort MCP providing visual access to AI project context management."
+readme = "README.md"
+license = {text = "Apache-2.0"}
+requires-python = ">=3.10"
+keywords = ["aimed", "mcp", "context", "portal", "dashboard", "ai-assistant", "visualization"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Software Development :: User Interfaces",
+]
+
+# Core dependencies updated for FastMCP
+dependencies = [
+    "fastapi==0.115.9",
+    "uvicorn[standard]",
+    "pydantic>=2.0.0",
+    "fastmcp>=0.9.0",
+    "sentence-transformers",
+    "chromadb>=1.0.0",
+    "alembic",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-asyncio",
+    "black",
+    "isort",
+    "flake8",
+    "mypy",
+]
+test = [
+    "pytest>=7.0.0",
+    "pytest-asyncio",
+    "pytest-cov",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/drew1two/AIMED"
+"Bug Reports" = "https://github.com/drew1two/AIMED/issues"
+"Source" = "https://github.com/drew1two/AIMED"
+"Documentation" = "https://github.com/drew1two/AIMED"
+
+[project.scripts]
+aimed = "context_portal_mcp.main:cli_entry_point"
+
+# Fixed package discovery for src layout
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["context_portal_mcp*"]
+
+[tool.setuptools.package-data]
+"context_portal_mcp" = [
+    "templates/**/*",
+    "*.json",
+    "*.yaml", 
+    "*.yml"
+]
+
+[tool.setuptools]
+include-package-data = true
+
+# Black configuration
+[tool.black]
+line-length = 88
+target-version = ['py310', 'py311', 'py312', 'py313']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+)/
+'''
+
+# isort configuration
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+line_length = 88
+known_first_party = ["context_portal_mcp"]
+
+# pytest configuration
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short"
+asyncio_mode = "auto"
+
+# mypy configuration
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+
+[[tool.mypy.overrides]]
+module = [
+    "chromadb.*",
+    "sentence_transformers.*",
+    "fastmcp.*",
+]
+ignore_missing_imports = true

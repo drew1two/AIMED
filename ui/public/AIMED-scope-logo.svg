@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <!-- Round favicon with black background and white crosshairs -->
+  
+  <!-- Black circular background -->
+  <circle cx="16" cy="16" r="15" fill="#000000"/>
+  
+  <!-- White border -->
+  <circle cx="16" cy="16" r="15" fill="none" stroke="#ffffff" stroke-width="1"/>
+  
+  <!-- White crosshairs - vertical line -->
+  <line x1="16" y1="3" x2="16" y2="8" stroke="#ffffff" stroke-width="2" stroke-linecap="round"/>
+  <line x1="16" y1="24" x2="16" y2="29" stroke="#ffffff" stroke-width="2" stroke-linecap="round"/>
+  
+  <!-- White crosshairs - horizontal line -->
+  <line x1="3" y1="16" x2="8" y2="16" stroke="#ffffff" stroke-width="2" stroke-linecap="round"/>
+  <line x1="24" y1="16" x2="29" y2="16" stroke="#ffffff" stroke-width="2" stroke-linecap="round"/>
+  
+  <!-- Center dot -->
+  <circle cx="16" cy="16" r="1.5" fill="#ffffff"/>
+  
+  <!-- Simplified white mil-dots -->
+  <circle cx="16" cy="11" r="1" fill="#ffffff"/>
+  <circle cx="16" cy="21" r="1" fill="#ffffff"/>
+  <circle cx="11" cy="16" r="1" fill="#ffffff"/>
+  <circle cx="21" cy="16" r="1" fill="#ffffff"/>
+</svg>

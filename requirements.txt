@@ -1,0 +1,8 @@
+fastapi==0.115.9
+uvicorn[standard]
+pydantic>=2.0.0
+sentence-transformers
+fastmcp>=0.9.0
+chromadb>=1.0.0
+alembic
+pytest

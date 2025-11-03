@@ -1,0 +1,31 @@
+# Python build artifacts
+*.egg-info/
+build/
+dist/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Development files
+.git/
+.gitignore
+.pytest_cache/
+.coverage
+.mypy_cache/
+.venv/
+venv/
+
+# Documentation
+docs/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db

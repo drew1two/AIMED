@@ -1,0 +1,26 @@
+AIMED - AI Monitoring & Execution Dashboard
+Copyright 2025 AIMED Contributors
+Available at: https://github.com/drew1two/AIMED
+
+This product includes software developed by GreatScottyMac and contributors:
+- ConPort MCP (Context Portal MCP Server) components in src/context_portal_mcp/
+- Copyright 2025 GreatScottyMac and contributors
+- Licensed under the Apache License, Version 2.0
+- Available at: https://github.com/GreatScottyMac/context-portal
+- Used as the foundation for AIMED's backend functionality
+
+Apache License, Version 2.0 (for ConPort MCP components only)
+You may obtain a copy of the Apache License at:
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the Apache License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the Apache License.
+
+AIMED Visual Extensions and Web Interface:
+- Copyright 2025 AIMED Contributors
+- Not licensed under Apache License 2.0
+- All rights reserved

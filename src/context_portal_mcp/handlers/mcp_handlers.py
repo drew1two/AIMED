@@ -198,13 +198,14 @@ def handle_search_decisions_fts(args: models.SearchDecisionsArgs) -> List[Dict[s
     Returns a list of decision dictionaries.
     """
     try:
+        normalized_workspace_id = normalize_workspace_id(args.workspace_id)
         safe_query = _prepare_fts_query(
             args.query_term,
             allowed_columns=["summary", "rationale", "implementation_details", "tags"],
             default_column="summary",
         )
         decisions_list = db.search_decisions_fts(
-            args.workspace_id,
+            normalized_workspace_id,
             query_term=safe_query,
             limit=args.limit
         )
@@ -222,13 +223,14 @@ def handle_search_progress_fts(args: models.SearchProgressArgs) -> List[Dict[str
     Returns a list of progress entry dictionaries.
     """
     try:
+        normalized_workspace_id = normalize_workspace_id(args.workspace_id)
         safe_query = _prepare_fts_query(
             args.query_term,
             allowed_columns=["status", "description"],
             default_column="description",
         )
         progress_entries = db.search_progress_fts(
-            args.workspace_id,
+            normalized_workspace_id,
             query_term=safe_query,
             limit=args.limit
         )
@@ -246,13 +248,14 @@ def handle_search_system_patterns_fts(args: models.SearchSystemPatternsArgs) -> 
     Returns a list of system pattern dictionaries.
     """
     try:
+        normalized_workspace_id = normalize_workspace_id(args.workspace_id)
         safe_query = _prepare_fts_query(
             args.query_term,
             allowed_columns=["name", "description", "tags"],
             default_column="name",
         )
         patterns = db.search_system_patterns_fts(
-            args.workspace_id,
+            normalized_workspace_id,
             query_term=safe_query,
             limit=args.limit
         )
@@ -270,13 +273,14 @@ def handle_search_context_fts(args: models.SearchContextArgs) -> List[Dict[str, 
     Returns a list of context search result dictionaries.
     """
     try:
+        normalized_workspace_id = normalize_workspace_id(args.workspace_id)
         safe_query = _prepare_fts_query(
             args.query_term,
             allowed_columns=["context_type", "content_text"],
             default_column="content_text",
         )
         results = db.search_context_fts(
-            args.workspace_id,
+            normalized_workspace_id,
             query_term=safe_query,
             context_type_filter=args.context_type_filter,
             limit=args.limit
@@ -331,13 +335,14 @@ def handle_log_progress(args: models.LogProgressArgs) -> Dict[str, Any]:
     Returns the logged progress entry as a dictionary.
     """
     try:
+        normalized_workspace_id = normalize_workspace_id(args.workspace_id)
         progress_to_log = models.ProgressEntry(
             status=args.status,
             description=args.description,
             parent_id=args.parent_id
             # linked_item_type and linked_item_id are not part of ProgressEntry model itself
         )
-        logged_progress = db.log_progress(args.workspace_id, progress_to_log)
+        logged_progress = db.log_progress(normalized_workspace_id, progress_to_log)
 
         # If linking information is provided, create the link
         if args.linked_item_type and args.linked_item_id and logged_progress.id is not None:
@@ -350,7 +355,7 @@ def handle_log_progress(args: models.LogProgressArgs) -> Dict[str, Any]:
                     relationship_type=args.link_relationship_type, # Use the relationship type from args
                     description=f"Progress entry '{logged_progress.description[:30]}...' automatically linked."
                 )
-                db.log_context_link(args.workspace_id, link_to_create)
+                db.log_context_link(normalized_workspace_id, link_to_create)
                 log.info(f"Automatically linked progress entry ID {logged_progress.id} to {args.linked_item_type} ID {args.linked_item_id}")
             except Exception as link_e:
                 # Log the linking error but don't let it fail the whole progress logging
@@ -373,7 +378,7 @@ def handle_log_progress(args: models.LogProgressArgs) -> Dict[str, Any]:
                     "parent_id": str(logged_progress.parent_id) if logged_progress.parent_id else None
                 }
                 vector_store_service.upsert_item_embedding(
-                    workspace_id=args.workspace_id,
+                    workspace_id=normalized_workspace_id,
                     item_type="progress_entry",
                     item_id=str(logged_progress.id),
                     vector=vector,
@@ -398,8 +403,9 @@ def handle_get_progress(args: models.GetProgressArgs) -> List[Dict[str, Any]]:
     Returns a list of progress entry dictionaries.
     """
     try:
+        normalized_workspace_id = normalize_workspace_id(args.workspace_id)
         progress_list = db.get_progress(
-            args.workspace_id,
+            normalized_workspace_id,
             status_filter=args.status_filter,
             parent_id_filter=args.parent_id_filter,
             limit=args.limit
@@ -418,7 +424,8 @@ def handle_update_progress(args: models.UpdateProgressArgs) -> Dict[str, Any]:
     Returns a status message dictionary.
     """
     try:
-        updated = db.update_progress_entry(args.workspace_id, args)
+        normalized_workspace_id = normalize_workspace_id(args.workspace_id)
+        updated = db.update_progress_entry(normalized_workspace_id, args)
 
         if updated:
             # --- Update Vector Store ---
@@ -449,7 +456,8 @@ def handle_update_decision(args: models.UpdateDecisionArgs) -> Dict[str, Any]:
     Returns a status message dictionary.
     """
     try:
-        updated = db.update_decision_by_id(args.workspace_id, args)
+        normalized_workspace_id = normalize_workspace_id(args.workspace_id)
+        updated = db.update_decision_by_id(normalized_workspace_id, args)
 
         if updated:
             # --- Update Vector Store ---
@@ -479,13 +487,14 @@ def handle_delete_progress_by_id(args: models.DeleteProgressByIdArgs) -> Dict[st
     Deletes a progress entry by its ID.
     """
     try:
-        deleted_from_db = db.delete_progress_entry_by_id(args.workspace_id, args.progress_id)
+        normalized_workspace_id = normalize_workspace_id(args.workspace_id)
+        deleted_from_db = db.delete_progress_entry_by_id(normalized_workspace_id, args.progress_id)
 
         if deleted_from_db:
             try:
                 # --- Delete from Vector Store ---
                 vector_store_service.delete_item_embedding(
-                    workspace_id=args.workspace_id,
+                    workspace_id=normalized_workspace_id,
                     item_type="progress_entry",
                     item_id=str(args.progress_id)
                 )
@@ -516,8 +525,9 @@ def handle_log_system_pattern(args: models.LogSystemPatternArgs) -> Dict[str, An
     Returns the logged system pattern as a dictionary.
     """
     try:
+        normalized_workspace_id = normalize_workspace_id(args.workspace_id)
         pattern_to_log = models.SystemPattern(name=args.name, description=args.description, tags=args.tags)
-        logged_pattern = db.log_system_pattern(args.workspace_id, pattern_to_log)
+        logged_pattern = db.log_system_pattern(normalized_workspace_id, pattern_to_log)
 
         # --- Add to Vector Store ---
         if logged_pattern and logged_pattern.id is not None:
@@ -534,7 +544,7 @@ def handle_log_system_pattern(args: models.LogSystemPatternArgs) -> Dict[str, An
                     "tags": ", ".join(logged_pattern.tags) if logged_pattern.tags else None
                 }
                 vector_store_service.upsert_item_embedding(
-                    workspace_id=args.workspace_id,
+                    workspace_id=normalized_workspace_id,
                     item_type="system_pattern",
                     item_id=str(logged_pattern.id),
                     vector=vector,
@@ -559,8 +569,9 @@ def handle_get_system_patterns(args: models.GetSystemPatternsArgs) -> List[Dict[
     Returns a list of system pattern dictionaries.
     """
     try:
+        normalized_workspace_id = normalize_workspace_id(args.workspace_id)
         patterns_list = db.get_system_patterns(
-            args.workspace_id,
+            normalized_workspace_id,
             tags_filter_include_all=args.tags_filter_include_all,
             tags_filter_include_any=args.tags_filter_include_any
         )
@@ -727,7 +738,8 @@ def handle_delete_custom_data(args: models.DeleteCustomDataArgs) -> Dict[str, An
     Returns a status message dictionary.
     """
     try:
-        deleted = db.delete_custom_data(args.workspace_id, category=args.category, key=args.key)
+        normalized_workspace_id = normalize_workspace_id(args.workspace_id)
+        deleted = db.delete_custom_data(normalized_workspace_id, category=args.category, key=args.key)
         if deleted:
             return {"status": "success", "message": f"Custom data '{args.category}/{args.key}' deleted."}
         else:
@@ -745,13 +757,14 @@ def handle_search_project_glossary_fts(args: models.SearchProjectGlossaryArgs) -
     Returns a list of glossary entry dictionaries.
     """
     try:
+        normalized_workspace_id = normalize_workspace_id(args.workspace_id)
         safe_query = _prepare_fts_query(
             args.query_term,
             allowed_columns=["category", "key", "value_text"],
             default_column="value_text",
         )
         glossary_entries = db.search_project_glossary_fts(
-            args.workspace_id,
+            normalized_workspace_id,
             query_term=safe_query,
             limit=args.limit
         )
@@ -768,13 +781,14 @@ def handle_search_custom_data_value_fts(args: models.SearchCustomDataValueArgs) 
     Searches custom data entries using FTS, optionally filtered by category.
     """
     try:
+        normalized_workspace_id = normalize_workspace_id(args.workspace_id)
         safe_query = _prepare_fts_query(
             args.query_term,
             allowed_columns=["category", "key", "value_text"],
             default_column="value_text",
         )
         results = db.search_custom_data_value_fts(
-            args.workspace_id,
+            normalized_workspace_id,
             query_term=safe_query,
             category_filter=args.category_filter,
             limit=args.limit
@@ -794,6 +808,7 @@ async def handle_semantic_search_conport(args: models.SemanticSearchConportArgs)
     Performs a semantic search using embeddings and vector store, with optional metadata filters.
     """
     try:
+        normalized_workspace_id = normalize_workspace_id(args.workspace_id)
         log.info(f"Handling semantic_search_conport for workspace {args.workspace_id} with query: '{args.query_text[:50]}...'")
 
         query_vector = embedding_service.get_embedding(args.query_text)
@@ -835,7 +850,7 @@ async def handle_semantic_search_conport(args: models.SemanticSearchConportArgs)
         log.debug(f"ChromaDB query filters: {chroma_filters}")
 
         search_results = vector_store_service.query_vector_store(
-            workspace_id=args.workspace_id,
+            workspace_id=normalized_workspace_id,
             query_vector=query_vector,
             top_k=args.top_k,
             filters=chroma_filters if chroma_filters else None
@@ -966,7 +981,8 @@ def handle_export_conport_to_markdown(args: models.ExportConportToMarkdownArgs) 
     Exports all ConPort data for a workspace to markdown files.
     Assumes 'args' is an already validated Pydantic model instance.
     """
-    workspace_path = Path(args.workspace_id)
+    normalized_workspace_id = normalize_workspace_id(args.workspace_id)
+    workspace_path = Path(normalized_workspace_id)
     output_dir_name = args.output_path if args.output_path else "conport_export"
     output_path = workspace_path / output_dir_name
 
@@ -977,42 +993,42 @@ def handle_export_conport_to_markdown(args: models.ExportConportToMarkdownArgs) 
         files_created = []
 
         # Product Context
-        product_ctx_data = db.get_product_context(args.workspace_id).content
+        product_ctx_data = db.get_product_context(normalized_workspace_id).content
         if product_ctx_data:
             with open(output_path / "product_context.md", "w", encoding="utf-8") as f:
                 f.write(_format_product_context_md(product_ctx_data))
             files_created.append("product_context.md")
 
         # Active Context
-        active_ctx_data = db.get_active_context(args.workspace_id).content
+        active_ctx_data = db.get_active_context(normalized_workspace_id).content
         if active_ctx_data:
             with open(output_path / "active_context.md", "w", encoding="utf-8") as f:
                 f.write(_format_active_context_md(active_ctx_data))
             files_created.append("active_context.md")
         
         # Decisions
-        decisions = db.get_decisions(args.workspace_id, limit=None) # Get all
+        decisions = db.get_decisions(normalized_workspace_id, limit=None) # Get all
         if decisions:
             with open(output_path / "decision_log.md", "w", encoding="utf-8") as f:
                 f.write(_format_decisions_md(decisions))
             files_created.append("decision_log.md")
 
         # Progress
-        progress_entries = db.get_progress(args.workspace_id, limit=None) # Get all
+        progress_entries = db.get_progress(normalized_workspace_id, limit=None) # Get all
         if progress_entries:
             with open(output_path / "progress_log.md", "w", encoding="utf-8") as f:
                 f.write(_format_progress_md(progress_entries))
             files_created.append("progress_log.md")
 
         # System Patterns
-        system_patterns = db.get_system_patterns(args.workspace_id)
+        system_patterns = db.get_system_patterns(normalized_workspace_id)
         if system_patterns:
             with open(output_path / "system_patterns.md", "w", encoding="utf-8") as f:
                 f.write(_format_system_patterns_md(system_patterns))
             files_created.append("system_patterns.md")
 
         # Custom Data
-        custom_data_entries = db.get_custom_data(args.workspace_id)
+        custom_data_entries = db.get_custom_data(normalized_workspace_id)
         if custom_data_entries:
             custom_data_path = output_path / "custom_data"
             custom_data_path.mkdir(exist_ok=True)
@@ -1298,8 +1314,9 @@ def handle_get_item_history(args: models.GetItemHistoryArgs) -> List[Dict[str, A
     Retrieves history for product_context or active_context.
     """
     try:
+        normalized_workspace_id = normalize_workspace_id(args.workspace_id)
         # Pydantic model GetItemHistoryArgs already validates item_type
-        history_entries = db.get_item_history(args.workspace_id, args)
+        history_entries = db.get_item_history(normalized_workspace_id, args)
         # The db.get_item_history function already returns a list of dicts
         # where content is a dict and timestamp is a datetime object.
         # We need to ensure timestamps are JSON serializable for the MCP response.
@@ -1381,12 +1398,13 @@ def handle_delete_decision_by_id(args: models.DeleteDecisionByIdArgs) -> Dict[st
     Deletes a decision by its ID.
     """
     try:
-        deleted_from_db = db.delete_decision_by_id(args.workspace_id, args.decision_id)
+        normalized_workspace_id = normalize_workspace_id(args.workspace_id)
+        deleted_from_db = db.delete_decision_by_id(normalized_workspace_id, args.decision_id)
         
         if deleted_from_db:
             try:
                 vector_store_service.delete_item_embedding(
-                    workspace_id=args.workspace_id,
+                    workspace_id=normalized_workspace_id,
                     item_type="decision",
                     item_id=str(args.decision_id)
                 )
@@ -1415,12 +1433,13 @@ def handle_delete_system_pattern_by_id(args: models.DeleteSystemPatternByIdArgs)
     Deletes a system pattern by its ID.
     """
     try:
-        deleted_from_db = db.delete_system_pattern_by_id(args.workspace_id, args.pattern_id)
+        normalized_workspace_id = normalize_workspace_id(args.workspace_id)
+        deleted_from_db = db.delete_system_pattern_by_id(normalized_workspace_id, args.pattern_id)
         
         if deleted_from_db:
             try:
                 vector_store_service.delete_item_embedding(
-                    workspace_id=args.workspace_id,
+                    workspace_id=normalized_workspace_id,
                     item_type="system_pattern",
                     item_id=str(args.pattern_id)
                 )
@@ -1446,8 +1465,9 @@ def handle_update_link(args: models.UpdateLinkArgs) -> Dict[str, Any]:
     Updates an existing link between two ConPort items.
     """
     try:
+        normalized_workspace_id = normalize_workspace_id(args.workspace_id)
         updated_link = db.update_context_link(
-            workspace_id=args.workspace_id,
+            workspace_id=normalized_workspace_id,
             link_id=args.link_id,
             relationship_type=args.relationship_type,
             description=args.description
@@ -1475,7 +1495,8 @@ def handle_delete_link_by_id(args: models.DeleteLinkByIdArgs) -> Dict[str, Any]:
     Deletes a link by its ID.
     """
     try:
-        deleted_from_db = db.delete_context_link_by_id(args.workspace_id, args.link_id)
+        normalized_workspace_id = normalize_workspace_id(args.workspace_id)
+        deleted_from_db = db.delete_context_link_by_id(normalized_workspace_id, args.link_id)
         
         if deleted_from_db:
             return {"status": "success", "message": f"Link ID {args.link_id} deleted successfully."}

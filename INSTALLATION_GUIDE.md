@@ -24,6 +24,7 @@
    cd AIMED
    python -m venv .venv # You can use conda instead if you prefer
    source .venv/bin/activate  # (or .venv\Scripts\activate on Windows)
+   pip install uv  # Install uv package manager
    uv pip install -r requirements.txt
    ```
 

@@ -807,7 +807,8 @@ import {
   createProgressNode,
   createSystemPatternNode,
   createCustomDataNode,
-  createGraphEdge
+  createGraphEdge,
+  createGraphEdgeWithCustomDataLookup
 } from './graph-types';
 
 /**
@@ -821,6 +822,15 @@ export function transformConportToGraphData(data: {
   links: any[];
 }): GraphData {
 
+  // Create a lookup map from custom_data numeric ID to category:key for link resolution
+  const customDataIdToKey = new Map<string, string>();
+  data.customData.forEach((custom) => {
+    if (custom.id) {
+      const categoryKey = `${encodeURIComponent(custom.category)}:${encodeURIComponent(custom.key)}`;
+      customDataIdToKey.set(String(custom.id), categoryKey);
+    }
+  });
+
   const nodes: GraphNode[] = [
     ...data.decisions.map((decision) => createDecisionNode(decision)),
     ...data.progress.map((progress) => createProgressNode(progress)),
@@ -829,7 +839,7 @@ export function transformConportToGraphData(data: {
   ];
 
   const edges: GraphEdge[] = data.links
-    .map((link) => createGraphEdge(link))
+    .map((link) => createGraphEdgeWithCustomDataLookup(link, customDataIdToKey))
     .filter((edge): edge is GraphEdge => edge !== null);
 
 

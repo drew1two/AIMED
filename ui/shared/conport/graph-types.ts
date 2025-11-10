@@ -251,11 +251,63 @@ export function createGraphEdge(link: any): GraphEdge | null {
   // Special handling for custom_data items - use category:key format
   const createSourceId = (itemType: string, itemId: string): string | null => {
     if (itemType === 'custom_data') {
-      // Handle both numeric IDs (old format) and category:key format (new format)
+      // Handle both numeric IDs (from database) and category:key format
       if (/^\d+$/.test(itemId)) {
-        // Numeric ID format - this is invalid for graph display, return null to skip this link
-        debugWarn(`[GraphEdge] Skipping link with numeric custom_data ID: ${itemId} (old format not supported)`);
-        return null;
+        // Numeric ID format - create a special node ID that can be resolved later
+        // Use the numeric ID directly since we can't resolve category:key here
+        return `custom-id-${itemId}`;
+      }
+      // For custom data, itemId should be "category:key" format
+      // Convert to "custom-category:key" format to match createCustomDataNode
+      return `custom-${itemId}`;
+    }
+    return `${transformItemType(itemType)}-${itemId}`;
+  };
+
+  const sourceId = createSourceId(link.source_item_type, link.source_item_id);
+  const targetId = createSourceId(link.target_item_type, link.target_item_id);
+  
+  // Skip the entire link if either endpoint can't be resolved
+  if (sourceId === null || targetId === null) {
+    return null;
+  }
+
+  // SAFETY: Normalize relationship type to lowercase for graph compatibility
+  // This handles both uppercase legacy data and mixed-case user input
+  const normalizedRelationType = (link.relationship_type || 'related_to').toLowerCase();
+  
+  return {
+    id: `link-${link.id}`,
+    source: sourceId,
+    target: targetId,
+    relationship_type: normalizedRelationType as RelationshipType,
+    description: link.description,
+    timestamp: link.timestamp
+  };
+}
+
+export function createGraphEdgeWithCustomDataLookup(link: any, customDataIdToKey: Map<string, string>): GraphEdge | null {
+  // Transform item types to match node ID formats
+  const transformItemType = (itemType: string) => {
+    if (itemType === 'progress_entry') return 'progress';
+    if (itemType === 'custom_data') return 'custom';
+    if (itemType === 'system_pattern') return 'pattern';
+    return itemType;
+  };
+
+  // Enhanced handling for custom_data items with numeric ID lookup
+  const createSourceId = (itemType: string, itemId: string): string | null => {
+    if (itemType === 'custom_data') {
+      // Handle both numeric IDs (from database) and category:key format
+      if (/^\d+$/.test(itemId)) {
+        // Numeric ID format - resolve to category:key using lookup map
+        const categoryKey = customDataIdToKey.get(itemId);
+        if (categoryKey) {
+          return `custom-${categoryKey}`;
+        } else {
+          debugWarn(`[GraphEdge] Cannot resolve custom_data numeric ID ${itemId} to category:key format`);
+          return null;
+        }
       }
       // For custom data, itemId should be "category:key" format
       // Convert to "custom-category:key" format to match createCustomDataNode

@@ -16,8 +16,10 @@ export function MicroMetricsWidget({ activity }: { activity: any }) {
   
   // Calculate activity metrics
   const decisionCount = (activity?.recent_decisions || []).length;
-  const linkCount = (activity?.recent_links_created || []).length;
+  const progressCount = (activity?.recent_progress_entries || []).length;
   const patternCount = (activity?.recent_system_patterns || []).length;
+  const customDataCount = (activity?.recent_custom_data || []).length;
+  const linkCount = (activity?.recent_links_created || []).length;
   
   return (
     <div className="lg:col-span-2 xl:col-span-1">
@@ -71,15 +73,17 @@ export function MicroMetricsWidget({ activity }: { activity: any }) {
                 <div className="w-3 h-4 bg-gray-400 rounded-sm" title={`Todo: ${todoCount}`}></div>
               </div>
             </div>
-            <p className="text-xs text-gray-600 dark:text-gray-400">Status Split</p>
+            <p className="text-xs text-gray-600 dark:text-gray-400">Progress Status Split</p>
           </div>
           
           {/* Activity Sparklines */}
           <div className="text-center">
             <div className="flex justify-center items-end space-x-1 mb-2 h-8">
-              <div className="w-2 bg-blue-400 rounded-sm" style={{ height: `${Math.max(4, (decisionCount / Math.max(decisionCount, linkCount, patternCount, 1)) * 32)}px` }} title={`Decisions: ${decisionCount}`}></div>
-              <div className="w-2 bg-purple-400 rounded-sm" style={{ height: `${Math.max(4, (linkCount / Math.max(decisionCount, linkCount, patternCount, 1)) * 32)}px` }} title={`Links: ${linkCount}`}></div>
-              <div className="w-2 bg-orange-400 rounded-sm" style={{ height: `${Math.max(4, (patternCount / Math.max(decisionCount, linkCount, patternCount, 1)) * 32)}px` }} title={`Patterns: ${patternCount}`}></div>
+              <div className="w-2 bg-blue-400 rounded-sm" style={{ height: `${Math.max(4, (decisionCount / Math.max(decisionCount, progressCount, patternCount, customDataCount, linkCount, 1)) * 32)}px` }} title={`Decisions: ${decisionCount}`}></div>
+              <div className="w-2 bg-green-400 rounded-sm" style={{ height: `${Math.max(4, (progressCount / Math.max(decisionCount, progressCount, patternCount, customDataCount, linkCount, 1)) * 32)}px` }} title={`Progress: ${progressCount}`}></div>
+              <div className="w-2 bg-orange-400 rounded-sm" style={{ height: `${Math.max(4, (patternCount / Math.max(decisionCount, progressCount, patternCount, customDataCount, linkCount, 1)) * 32)}px` }} title={`Patterns: ${patternCount}`}></div>
+              <div className="w-2 bg-pink-400 rounded-sm" style={{ height: `${Math.max(4, (customDataCount / Math.max(decisionCount, progressCount, patternCount, customDataCount, linkCount, 1)) * 32)}px` }} title={`Custom Data: ${customDataCount}`}></div>
+              <div className="w-2 bg-purple-400 rounded-sm" style={{ height: `${Math.max(4, (linkCount / Math.max(decisionCount, progressCount, patternCount, customDataCount, linkCount, 1)) * 32)}px` }} title={`Links: ${linkCount}`}></div>
             </div>
             <p className="text-xs text-gray-600 dark:text-gray-400">Activity</p>
           </div>

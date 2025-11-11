@@ -223,71 +223,82 @@ function ActivityDashboard({
   onPollingIntervalChange: (interval: number) => void;
 }) {
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-      {/* Recent Progress */}
-      <ActivityCard
-        title="Recent Progress"
-        icon={<span className="text-lg">✅</span>}
-        items={activity?.recent_progress_entries || []}
-        renderItem={(item: any) => (
-          <ProgressActivityItem key={item.id} item={item} router={router} />
-        )}
-      />
+    <div className="grid gap-6" style={{
+      gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+      gridAutoRows: 'min-content'
+    }}>
+      {/* Column 1 */}
+      <div className="flex flex-col gap-6">
+        <MicroMetricsWidget activity={activity} />
+        <ActivityCard
+          title="Context Updates"
+          icon={<span className="text-lg">🕒</span>}
+          items={[
+            ...(activity?.recent_product_context_updates || []),
+            ...(activity?.recent_active_context_updates || [])
+          ]}
+          renderItem={(item: any) => (
+            <ContextActivityItem key={`${item.id}-${item.change_source}`} item={item} router={router} />
+          )}
+        />
+        <ActivityCard
+          title="Recent Links"
+          icon={<span className="text-lg">🔗</span>}
+          items={activity?.recent_links_created || []}
+          renderItem={(item: any) => (
+            <LinkActivityItem key={item.id} item={item} router={router} />
+          )}
+        />
+      </div>
 
-      {/* Recent Decisions */}
-      <ActivityCard
-        title="Recent Decisions"
-        icon={<span className="text-lg">⚡</span>}
-        items={activity?.recent_decisions || []}
-        renderItem={(item: any) => (
-          <DecisionActivityItem key={item.id} item={item} router={router} />
-        )}
-      />
+      {/* Column 2 */}
+      <div className="flex flex-col gap-6">
+        <ActivityCard
+          title="Recent Progress"
+          icon={<span className="text-lg">✅</span>}
+          items={activity?.recent_progress_entries || []}
+          renderItem={(item: any) => (
+            <ProgressActivityItem key={item.id} item={item} router={router} />
+          )}
+        />
+        <ActivityCard
+          title="Custom Data"
+          icon={<span className="text-lg">📊</span>}
+          items={[]} // TODO: Add custom data when available
+          renderItem={(item: any) => (
+            <div key={item.id} className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+              {item.title || item.description}
+            </div>
+          )}
+        />
+      </div>
 
-      {/* Context Updates */}
-      <ActivityCard
-        title="Context Updates"
-        icon={<span className="text-lg">🕒</span>}
-        items={[
-          ...(activity?.recent_product_context_updates || []),
-          ...(activity?.recent_active_context_updates || [])
-        ]}
-        renderItem={(item: any) => (
-          <ContextActivityItem key={`${item.id}-${item.change_source}`} item={item} router={router} />
-        )}
-      />
-
-      {/* Recent Links */}
-      <ActivityCard
-        title="Recent Links"
-        icon={<span className="text-lg">🔗</span>}
-        items={activity?.recent_links_created || []}
-        renderItem={(item: any) => (
-          <LinkActivityItem key={item.id} item={item} router={router} />
-        )}
-      />
-
-      {/* System Patterns */}
-      <ActivityCard
-        title="System Patterns"
-        icon={<span className="text-lg">🏗️</span>}
-        items={activity?.recent_system_patterns || []}
-        renderItem={(item: any) => (
-          <PatternActivityItem key={item.id} item={item} router={router} />
-        )}
-      />
-
-      {/* Micro-metrics Widget */}
-      <MicroMetricsWidget activity={activity} />
-      
-      {/* Tag Heatmap Widget */}
-      <TagHeatmapWidget
-        activity={activity}
-        pollingEnabled={pollingEnabled}
-        pollingInterval={pollingInterval}
-        onPollingToggle={onPollingToggle}
-        onPollingIntervalChange={onPollingIntervalChange}
-      />
+      {/* Column 3 */}
+      <div className="flex flex-col gap-6">
+        <ActivityCard
+          title="Recent Decisions"
+          icon={<span className="text-lg">⚡</span>}
+          items={activity?.recent_decisions || []}
+          renderItem={(item: any) => (
+            <DecisionActivityItem key={item.id} item={item} router={router} />
+          )}
+        />
+        <ActivityCard
+          title="System Patterns"
+          icon={<span className="text-lg">🏗️</span>}
+          items={activity?.recent_system_patterns || []}
+          renderItem={(item: any) => (
+            <PatternActivityItem key={item.id} item={item} router={router} />
+          )}
+        />
+        <TagHeatmapWidget
+          activity={activity}
+          pollingEnabled={pollingEnabled}
+          pollingInterval={pollingInterval}
+          onPollingToggle={onPollingToggle}
+          onPollingIntervalChange={onPollingIntervalChange}
+        />
+      </div>
     </div>
   );
 }
@@ -678,7 +689,7 @@ function KanbanColumn({ title, status, items, bgColor, router }: {
           >
             {items.length === 0 ? (
               <p className="text-gray-500 dark:text-gray-400 text-sm text-center py-8">
-                No items in {title.toLowerCase()}
+                No items in {title}
               </p>
             ) : (
               items.map((item, index) => (

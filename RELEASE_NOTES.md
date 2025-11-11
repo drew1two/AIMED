@@ -1,5 +1,18 @@
 # AIMED Release Notes
 
+## v0.1.2 - UI Enhancements & Layout Improvements (2025-11-12)
+
+Enhanced user interface with improved dashboard layout and micro-metrics widget functionality.
+
+### Changes
+
+- Fixed Kanban board text display ("No items in In Progress" now displays correctly)
+- Enhanced MicroMetricsWidget to include all activity types (Decisions, Progress, Patterns, Custom Data, Links)
+- Changed "Status Split" to "Progress Status Split" for clarity
+- Optimized dashboard layout with responsive columns and eliminated gaps between components
+- Micro-metrics widget repositioned to first position
+- Activity Feed confirmed as default landing page
+
 ## v0.1.1 - ConPort 3.8 Security & Stability Update (2025-11-12)
 
 Updated AIMED to use ConPort MCP equivalent to v0.3.8, bringing security enhancements.

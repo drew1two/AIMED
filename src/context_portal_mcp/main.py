@@ -143,7 +143,7 @@ async def conport_lifespan(server: FastMCP) -> AsyncIterator[None]:
 
 # --- FastMCP Server Instance ---
 # Version from pyproject.toml would be ideal here, or define centrally
-CONPORT_VERSION = "0.3.4"
+CONPORT_VERSION = "0.3.8"
 
 conport_mcp = FastMCP(
     name="ConPort", # Pass name directly

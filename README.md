@@ -155,7 +155,7 @@ See [Installation Guide](INSTALLATION_GUIDE.md) for complete setup instructions.
    ```
    Opens ConPort MCP server (port 8020) and web UI (port 3000)
 
-**Architecture**: AIMED uses a modified version of ConPort MCP which is the equivalent of Conport MCP v0.3.4. It creates `context_portal_aimed/` directory for workspace isolation. Each project runs independent server instances with separate port allocation.
+**Architecture**: AIMED uses a modified version of ConPort MCP which is the equivalent of Conport MCP v0.3.8. It creates `context_portal_aimed/` directory for workspace isolation. Each project runs independent server instances with separate port allocation.
 
 ## Features
 
@@ -189,7 +189,7 @@ AIMED extends [ConPort MCP](https://github.com/GreatScottyMac/context-portal) by
 
 - **ConPort MCP**: Copyright © 2025 GreatScottyMac and contributors, licensed under Apache License 2.0
 - **AIMED Visual Extensions**: Copyright © 2025 AIMED Contributors
-- **Current ConPort equivalent**: v0.3.4
+- **Current ConPort equivalent**: v0.3.8
 
 See [NOTICE](NOTICE) for complete attribution details.
 

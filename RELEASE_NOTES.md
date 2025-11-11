@@ -1,5 +1,14 @@
 # AIMED Release Notes
 
+## v0.1.1 - ConPort 3.8 Security & Stability Update (2025-11-12)
+
+Updated AIMED to use ConPort MCP equivalent to v0.3.8, bringing security enhancements.
+
+### Changes
+
+- Updated ConPort MCP backend to v0.3.8 equivalent functionality with security improvements
+- Enhanced dependency management and compatibility
+
 ## v0.1.0 - Initial Release (2025-10-09)
 
 Initial public release of AIMED (AI Monitoring & Execution Dashboard) - a web interface for ConPort MCP providing visual access to AI project context management.

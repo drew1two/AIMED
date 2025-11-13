@@ -124,7 +124,7 @@ See [AIMED-BENEFITS.md](AIMED-BENEFITS.md) for complete features and capabilitie
 - [`cascade_conport_strategy`](conport-custom-instructions/cascade_conport_strategy) - For Windsurf Cascade (full version)
 - [`cascade_conport_strategy_compact`](conport-custom-instructions/cascade_conport_strategy_compact) - For Windsurf Cascade (compact version)
 - [`generic_conport_strategy`](conport-custom-instructions/generic_conport_strategy) - For other MCP-compatible environments
-- [`current_generic_conport_strategy`](conport-custom-instructions/current_generic_conport_strategy) - Trimmed down version of generic_conport_strategy that works well for me :)
+- [`current_generic_conport_strategy`](conport-custom-instructions/current_generic_conport_strategy) - Trimmed down version of generic_conport_strategy that still works well :)
 - [`mem4sprint.md`](conport-custom-instructions/mem4sprint.md) - Memory and sprint management strategy
 - [`mem4sprint.schema_and_templates.md`](conport-custom-instructions/mem4sprint.schema_and_templates.md) - Schema and templates for memory management
 

@@ -3,6 +3,7 @@
 <br>
 
 # <img src="assets/images/aimed-scope-logo.svg" alt="AIMED Scope Logo" height="32" style="vertical-align: middle; margin-right: 8px;"/> AIMED - AI Monitoring & Execution Dashboard
+Keeping AI 'AIMED' at the end goal!
 ## Version v0.1.2
 
 *Visual Interface for keeping AI assistants on track and focussed*

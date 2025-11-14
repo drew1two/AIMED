@@ -96,7 +96,7 @@ Configure your IDE's MCP settings to connect AIMED's conport-aimed server:
 - **Roo Code**: [`roo_code_conport_strategy`](conport-custom-instructions/roo_code_conport_strategy)
 - **Cline**: [`cline_conport_strategy`](conport-custom-instructions/cline_conport_strategy) 
 - **Windsurf Cascade**: [`cascade_conport_strategy`](conport-custom-instructions/cascade_conport_strategy)
-- **Other IDEs**: [`current_generic_conport_strategy`](conport-custom-instructions/current_generic_conport_strategy)
+- **Generic Condensed**: [`current_generic_conport_strategy`](conport-custom-instructions/current_generic_conport_strategy) (less recurring tokens, leaves room for extra custom instructions, may need short LLM reminders)
 
 Copy the **entire content** of the relevant file into your LLM's custom instructions area.
 

@@ -6,7 +6,7 @@
 Keeping AI costs down by keeping LLM's 'AIMED' at the target!
 ## Version v0.1.2
 
-*Visual Interface for keeping AI assistants on track and focussed*
+*Visual Interface for the RAG used in each project*
 
 <br>
 

@@ -135,7 +135,7 @@ Feel free to use these as a base for your own custom instructions.
 
 ## Quick Start
 
-See [Installation Guide](INSTALLATION_GUIDE.md) for complete setup instructions.
+See [Installation Guide](INSTALLATION_GUIDE.md) for the actual setup instructions.
 
 ### Basic Steps
 

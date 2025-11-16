@@ -202,8 +202,8 @@ See [NOTICE](NOTICE) for complete attribution details.
 - [Release Notes](RELEASE_NOTES.md) - Version history
 - [AIMED Benefits](AIMED-BENEFITS.md) - Complete features and capabilities
 
-## Support
+## Community & Support
 
 - [GitHub Issues](https://github.com/drew1two/AIMED/issues) - Bug reports and feature requests
-- [GitHub Discussions](https://github.com/drew1two/AIMED/discussions) - Community Q&A
-
+- **[AIMED discussion intro](https://github.com/drew1two/AIMED/discussions/1)** - Read what we're about, introduce yourself, share your workflow, and connect with the community
+- [General discussions](https://github.com/drew1two/AIMED/discussions) - Ask questions, search all topics, start new threads

@@ -21,9 +21,10 @@ Keeping AI costs down by keeping LLM's 'AIMED' at the target!
 
 ## What is AIMED?
 
-**AIMED** (AI Monitoring & Execution Dashboard) is a web interface for [ConPort MCP](https://github.com/GreatScottyMac/context-portal) that provides visual access to project context knowledge used by AI assistants.
+**AIMED** (AI Monitoring & Execution Dashboard) is a self-contained web interface built on a bundled, modified version of [ConPort MCP](https://github.com/GreatScottyMac/context-portal) that provides visual access to project context knowledge used by AI assistants.
 
-**AIMED = ConPort MCP + Web Dashboard**
+**AIMED = ConPort MCP (modified & bundled) + Web Dashboard**
+
 
 ## Visual Tour
 

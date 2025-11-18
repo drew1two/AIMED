@@ -162,7 +162,7 @@ Copy the **entire content** of the relevant file into your LLM's custom instruct
 
 **If folder doesn't appear**: Check [Troubleshooting](#troubleshooting) section.
 
-⚠️ **Important**: This only verifies installation. For actual usage, proceed to [Creating Your First Project](#creating-your-first-project).
+⚠️ **Important**: This only verifies installation. For actual usage, see the next section.
 
 ## Creating Your First Project
 

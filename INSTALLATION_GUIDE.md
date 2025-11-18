@@ -23,7 +23,15 @@
    git clone https://github.com/drew1two/AIMED.git
    cd AIMED
    python -m venv .venv # You can use conda instead if you prefer
-   source .venv/bin/activate  # (or .venv\Scripts\activate on Windows)
+   ```
+   
+   **Activate virtual environment:**
+   - **Linux/macOS/WSL**: `source .venv/bin/activate`
+   - **Windows PowerShell**: `.venv\Scripts\activate`
+   - **Windows cmd**: `.venv\Scripts\activate.bat`
+   
+   **Install dependencies:**
+   ```bash
    pip install uv  # Install uv package manager
    uv pip install -r requirements.txt
    ```
@@ -123,7 +131,14 @@ Copy the **entire content** of the relevant file into your LLM's custom instruct
 mkdir my_new_project
 cd my_new_project
 python -m venv .venv
-source .venv/bin/activate  # (or .venv\Scripts\activate on Windows)
+```
+
+**Activate virtual environment:**
+- **Linux/macOS/WSL**: `source .venv/bin/activate`
+- **Windows PowerShell**: `.venv\Scripts\activate`
+- **Windows cmd**: `.venv\Scripts\activate.bat`
+
+```bash
 echo "# My New Project" > README.md
 git init
 ```

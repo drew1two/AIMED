@@ -30,6 +30,8 @@
    - **Windows PowerShell**: `.venv\Scripts\activate`
    - **Windows cmd**: `.venv\Scripts\activate.bat`
    
+   **Deactivate (all platforms):** `deactivate`
+   
    **Install dependencies:**
    ```bash
    pip install uv  # Install uv package manager

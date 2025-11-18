@@ -45,6 +45,12 @@
    cd ..
    ```
 
+3. **Open AIMED in your IDE**
+   
+   Open the AIMED directory as your workspace before configuring MCP. This ensures `context_portal_aimed` is created in the correct location (within AIMED, not its parent directory), which is important when developing or modifying AIMED itself.
+   
+   Once configured, each project will have its own isolated `context_portal_aimed` folder, keeping AI assistant context separate across all your projects.
+
 ## MCP Client Configuration
 
 Configure your IDE's MCP settings to connect AIMED's conport-aimed server:

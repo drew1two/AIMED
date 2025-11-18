@@ -26,11 +26,26 @@
    ```
    
    **Activate virtual environment:**
-   - **Linux/macOS/WSL**: `source .venv/bin/activate`
-   - **Windows PowerShell**: `.venv\Scripts\activate`
-   - **Windows cmd**: `.venv\Scripts\activate.bat`
    
-   **Deactivate (all platforms):** `deactivate`
+   **Linux/macOS/WSL:**
+   ```bash
+   source .venv/bin/activate
+   ```
+   
+   **Windows PowerShell:**
+   ```powershell
+   .venv\Scripts\activate
+   ```
+   
+   **Windows cmd:**
+   ```cmd
+   .venv\Scripts\activate.bat
+   ```
+   
+   **Deactivate (all platforms):**
+   ```bash
+   deactivate
+   ```
    
    **Install dependencies:**
    ```bash
@@ -161,9 +176,21 @@ python -m venv .venv
 ```
 
 **Activate virtual environment:**
-- **Linux/macOS/WSL**: `source .venv/bin/activate`
-- **Windows PowerShell**: `.venv\Scripts\activate`
-- **Windows cmd**: `.venv\Scripts\activate.bat`
+
+**Linux/macOS/WSL:**
+```bash
+source .venv/bin/activate
+```
+
+**Windows PowerShell:**
+```powershell
+.venv\Scripts\activate
+```
+
+**Windows cmd:**
+```cmd
+.venv\Scripts\activate.bat
+```
 
 ```bash
 echo "# My New Project" > README.md
@@ -251,13 +278,31 @@ or
 
 ### MCP Server Connection Issues
 - Verify Python virtual environment is activated
-- Check dependencies: `uv pip install -r requirements.txt`
+- Check dependencies:
+  ```bash
+  uv pip install -r requirements.txt
+  ```
 - Review logs at specified `--log-file` location
 - Ensure MCP configuration paths are correct
 
 ### Folder Not Appearing
 - Refresh IDE file explorer (F5)
-- Check terminal: `ls -la | grep context`
+- Check terminal:
+  
+  **Linux/macOS/WSL:**
+  ```bash
+  ls -la | grep context
+  ```
+  
+  **Windows PowerShell:**
+  ```powershell
+  dir | Select-String context
+  ```
+  
+  **Windows cmd:**
+  ```cmd
+  dir /a | findstr context
+  ```
 - Verify custom instructions are applied to your LLM
 - Check MCP server logs for connection errors
 
@@ -273,8 +318,36 @@ or
 - AIMED automatically configures WSL2 networking
 
 ### Database Issues
-- Check file permissions: `context_portal_aimed/context_aimed.db`
-- Clean slate: `rm context_portal_aimed/context_aimed.db` and refresh projects conport-aimed mcp server
+- Check file permissions:
+  
+  **Linux/macOS/WSL:**
+  ```bash
+  ls -la context_portal_aimed/context_aimed.db
+  ```
+  
+  **Windows:**
+  ```powershell
+  dir context_portal_aimed\context_aimed.db
+  ```
+
+- Clean slate (⚠️ deletes database):
+  
+  **Linux/macOS/WSL:**
+  ```bash
+  rm context_portal_aimed/context_aimed.db
+  ```
+  
+  **Windows PowerShell:**
+  ```powershell
+  Remove-Item context_portal_aimed\context_aimed.db
+  ```
+  
+  **Windows cmd:**
+  ```cmd
+  del context_portal_aimed\context_aimed.db
+  ```
+  
+  Then refresh projects conport-aimed mcp server
 - Export data before major updates
 
 ## Next Steps

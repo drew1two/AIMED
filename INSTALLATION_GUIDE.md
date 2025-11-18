@@ -45,15 +45,34 @@
    cd ..
    ```
 
-3. **Open AIMED in your IDE**
+3. **Open AIMED as a workspace in your IDE**
    
-   Open the AIMED directory as your workspace before configuring MCP. This ensures `context_portal_aimed` is created in the correct location (within AIMED, not its parent directory), which is important when developing or modifying AIMED itself.
+   Open the AIMED directory as your workspace before configuring MCP settings file. This ensures `context_portal_aimed` is created in the correct location (within AIMED, not its parent directory), which is important if you want to develop / modify AIMED itself.
    
-   Once configured, each project will have its own isolated `context_portal_aimed` folder, keeping AI assistant context separate across all your projects.
+   Once configured, each project will get its own isolated `context_portal_aimed` folder when you open them up in your IDE, keeping AI assistant context separate across all your projects.
+
+## Coming from context-portal?
+
+**⚠️ If you're currently using the `conport` MCP server, read this section first before proceeding.**
+
+To temporarily switch from context-portal to AIMED:
+
+1. **Disable conport server** - Turn off the existing conport MCP server before modifying settings
+2. **Update MCP settings** - Replace / Add (Add Recommended so you can always revert) the `conport-aimed` configuration (next section)
+3. **Update custom instructions** - Save existing somewhere and replace with AIMED-specific instructions (see [Custom Instructions](#custom-instructions-for-llm-agents))
+4. **Test with a new project** - Verify AIMED works correctly before considering to migrate existing projects (migration not yet implemented)
+5. **Revert if needed** - You can always disable AIMED and restore context-portal settings by turning off 'conport-aimed', turning on 'conport' and re-instating your saved custom instructions
+
+**Key Differences:**
+- AIMED uses `conport-aimed` as the server name (vs `conport`)
+- Different custom instructions required for AI assistants
+- Web dashboard included for visual management
+
+---
 
 ## MCP Client Configuration
 
-Configure your IDE's MCP settings to connect AIMED's conport-aimed server:
+Configure your IDE's MCP settings to connect AIMED's `conport-aimed` server:
 
 ### Basic Configuration
 

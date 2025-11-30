@@ -169,6 +169,9 @@ Copy the **entire content** of the relevant file into your LLM's custom instruct
 **Recommended workflow for actual AIMED usage:**
 
 ### Step 1: Create New Project
+
+> **⚠️ IMPORTANT:** Turn off the `conport-aimed` MCP server before proceeding, else it will create the `context_portal_aimed` folder before you have properly setup your new project's environment (incorrect values detected when it is created).
+
 ```bash
 mkdir my_new_project
 cd my_new_project
@@ -191,17 +194,19 @@ source .venv/bin/activate
 ```cmd
 .venv\Scripts\activate.bat
 ```
-
 ```bash
-echo "# My New Project" > README.md
 git init
 ```
 
-### Step 2: Open in IDE & Initialize AIMED if not already there
-1. **Ask your AI assistant any question** - triggers first conport-aimed tool call
-- else refresh conport-aimed mcp server
-3. **Watch for `context_portal_aimed` folder** to appear in project root
-4. **LLM will offer to launch the UI** - accept or launch manually later
+### Step 2: Restart MCP Server & Initialize AIMED
+
+> **💡 NOTE:** Restart the `conport-aimed` MCP server now. It could take 5-20 seconds to start (depending on your computer).
+
+Once the MCP server is running:
+- The `context_portal_aimed` folder should appear automatically in your project root
+- If the folder doesn't appear, ask your AI assistant a question using the `conport-aimed` server to trigger initialization
+  - Example: *"What is my project's product context?"*
+- Your LLM will initialize AIMED and offer to launch the UI - accept or launch manually later
 
 ### Step 3: Launch AIMED Dashboard
 ```bash

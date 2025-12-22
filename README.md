@@ -23,6 +23,9 @@ Keeping AI costs down by keeping LLM's 'AIMED' at the target!
 
 **AIMED** (AI Monitoring & Execution Dashboard) is a self-contained web interface built on a bundled, modified version of [ConPort MCP](https://github.com/GreatScottyMac/context-portal) that provides visual access to project context knowledge used by AI assistants.
 
+> **The Difference: Read-Only vs. Read-Write Memory**
+> Other tools treat AI memory as a read-only cache. AIMED treats it as a read-write document that **YOU control**.
+
 **AIMED = ConPort MCP (modified & bundled) + Web Dashboard**
 
 
@@ -108,6 +111,7 @@ Keeping AI costs down by keeping LLM's 'AIMED' at the target!
 
 - **How does your AI view your project?** Provides insight into what the AI actually sees
 - **Reduce AI token costs** by eliminating context baggage and managing what your AI uses
+- **Read-write memory you control** — edit and curate the AI’s “memory” as a living document (not a read-only cache)
 - **Visual knowledge graph** showing relationships between decisions, progress, patterns and custom data
 - **Multi-workspace isolation** Ability to work on multiple workspaces at the same time with workspace isolation.
 

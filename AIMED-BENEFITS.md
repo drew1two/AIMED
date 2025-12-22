@@ -4,6 +4,8 @@
 
 AIMED provides visibility into the project context that AI assistants use during development. It enables developers to manage what information their AI sees, track decisions and progress, and maintain coherent project knowledge across sessions.
 
+**Read-write memory you control**.
+
 ## Core Benefits
 
 ### Context Management & Token Efficiency

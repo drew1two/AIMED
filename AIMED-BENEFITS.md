@@ -4,7 +4,7 @@
 
 AIMED provides visibility into the project context that AI assistants use during development. It enables developers to manage what information their AI sees, track decisions and progress, and maintain coherent project knowledge across sessions.
 
-**Read-write memory you control**.
+**Glass-box “Project Brain”.** AIMED turns AI “memory” into an editable document you can inspect and correct.
 
 ## Core Benefits
 

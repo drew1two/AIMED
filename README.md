@@ -139,9 +139,9 @@ Feel free to use these as a base for your own custom instructions.
 
 ## Quick Start
 
-See [Installation Guide](INSTALLATION_GUIDE.md) for the actual setup instructions.
+See [Installation Guide](INSTALLATION_GUIDE.md) for the actual setup instructions (especially the section “Creating Your First Project”).
 
-### Basic Steps
+### 1) Install AIMED (one-time)
 
 1. **Clone repository and install dependencies**
    ```bash
@@ -152,14 +152,35 @@ See [Installation Guide](INSTALLATION_GUIDE.md) for the actual setup instruction
    ```
 
 2. **Configure MCP client in your IDE**
-   - Add ConPort MCP server configuration
-   - See installation guide for platform-specific examples
+   - Add the `conport-aimed` MCP server configuration
+   - See the installation guide for platform-specific examples
 
-3. **Launch dashboard**
+### 2) Use AIMED in a project (recommended workflow)
+
+#### New project (important ordering)
+
+1. In your IDE’s MCP panel: **turn OFF** the `conport-aimed` MCP server
+2. Create your new project folder and **create + activate** its Python environment (venv/conda/etc.)
+3. In your IDE’s MCP panel: **turn ON** the `conport-aimed` MCP server again
+   - This will create `context_portal_aimed/` in your project automatically
+4. (Recommended) add `context_portal_aimed/` to your project’s `.gitignore`
+   - Commit it only if you intentionally want to share the project’s AIMED dashboard/history with others
+5. Launch the dashboard:
    ```bash
    python context_portal_aimed/portal_launcher.py
    ```
-   Opens ConPort MCP server (port 8020) and web UI (port 3000)
+
+**If `context_portal_aimed/` was created before you made/activated the new env:** finish setting up the env, delete `context_portal_aimed/`, then restart the `conport-aimed` MCP server once.
+
+#### Existing project
+
+1. Ensure the project already has a Python environment and **activate it**
+2. Ensure the `conport-aimed` MCP server is running (it will create `context_portal_aimed/` if missing)
+3. (Recommended) add `context_portal_aimed/` to `.gitignore`
+4. Launch the dashboard:
+   ```bash
+   python context_portal_aimed/portal_launcher.py
+   ```
 
 **Architecture**: AIMED uses a modified version of ConPort MCP which is the equivalent of Conport MCP v0.3.8. It creates `context_portal_aimed/` directory for workspace isolation. Each project runs independent server instances with separate port allocation.
 

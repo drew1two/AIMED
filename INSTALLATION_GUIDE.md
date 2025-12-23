@@ -166,16 +166,19 @@ Copy the **entire content** of the relevant file into your LLM's custom instruct
 
 ## Creating Your First Project
 
-**Recommended workflow for actual AIMED usage:**
+**Recommended workflow for actual AIMED usage (new project):**
 
-### Step 1: Create New Project
+### Step 0: Temporarily disable the MCP server (IDE step)
 
-> **⚠️ IMPORTANT:** Turn off the `conport-aimed` MCP server before proceeding, else it will create the `context_portal_aimed` folder before you have properly setup your new project's environment (incorrect values detected when it is created).
+> **⚠️ IMPORTANT:** Turn **off** the `conport-aimed` MCP server in your IDE *before* creating a new project.
+> Otherwise it may create `context_portal_aimed/` before your new project's Python environment exists, causing AIMED to detect the wrong Python path.
+
+### Step 1: Create the project folder and Python environment
 
 ```bash
 mkdir my_new_project
 cd my_new_project
-python -m venv .venv
+python -m venv .venv  # (or conda/whatever you normally use)
 ```
 
 **Activate virtual environment:**
@@ -194,34 +197,76 @@ source .venv/bin/activate
 ```cmd
 .venv\Scripts\activate.bat
 ```
+
+(Optional) initialize git:
 ```bash
 git init
 ```
 
-### Step 2: Restart MCP Server & Initialize AIMED
+### Step 2: Turn the MCP server back on (initialize AIMED)
 
-> **💡 NOTE:** Restart the `conport-aimed` MCP server now. It could take 5-20 seconds to start (depending on your computer).
+> **💡 NOTE:** Restart (turn back on) the `conport-aimed` MCP server now. It can take 5–20 seconds to start (depending on your computer).
 
 Once the MCP server is running:
-- The `context_portal_aimed` folder should appear automatically in your project root
+- A `context_portal_aimed/` folder should appear automatically in your project root
 - If the folder doesn't appear, ask your AI assistant a question using the `conport-aimed` server to trigger initialization
   - Example: *"What is my project's product context?"*
-- Your LLM will initialize AIMED and offer to launch the UI - accept or launch manually later
+- Your LLM will initialize AIMED and may offer to launch the UI — accept if you want, or launch manually (next step)
 
-### Step 3: Launch AIMED Dashboard
+**Recommended: add `context_portal_aimed/` to `.gitignore`**
+
+This folder contains everything needed for the AIMED dashboard for this project, and will include a local SQLite database.
+
+- If you **don’t** want to share your project’s AIMED data (decisions/progress/context history), add it to `.gitignore`.
+- If you **do** want to share it with someone (e.g., via GitHub), you can commit it — they’ll also need AIMED installed, then cloning your repo should let them launch the same dashboard state.
+
+Example `.gitignore` entry:
+```gitignore
+context_portal_aimed/
+```
+
+**If you forgot Step 0 (folder created too early): quick fix**
+
+If `context_portal_aimed/` was created before you activated/created the new project’s environment:
+
+1. Finish creating/activating your environment (Step 1)
+2. Delete the `context_portal_aimed/` folder
+3. Restart the `conport-aimed` MCP server
+
+A new `context_portal_aimed/` folder will be created and should correctly detect the active environment.
+
+### Step 3: Launch AIMED Dashboard (manual launch)
+
 ```bash
 python context_portal_aimed/portal_launcher.py
 ```
 
-**Expected Results:**
-- Dashboard loads at `http://localhost:3000` (or WSL2 IP with available port)
-- Project context shows your new project workspace  
-- AI assistant has access to conport-aimed tools
+Notes:
+- This script is the recommended way to launch the dashboard manually.
+- If you work on multiple projects at the same time, each project’s UI will use the next available port automatically.
+- If your AI assistant offers to launch the UI for you, it will use this same launcher.
+- If your AI assistant doesn't offer to launch the UI, check that you have entered one of the custom instructions from the conport-custom-instructions folder. (The current_generic_conport_strategy file is a good lighter weight variant that should work across different IDE's)
 
-### Step 4: Initialize Project Context
+**Expected Results:**
+- Dashboard loads at `http://localhost:3000` (or WSL2 IP with an available port)
+- Project context shows your new project workspace
+- AI assistant has access to `conport-aimed` tools
+
+### Step 4: Initialize Project Context (recommended)
+
 - Create `projectBrief.md` in your project root with project goals and features
 - LLM will offer to import this into conport-aimed Product Context
 - Or use the AIMED dashboard: Context → Product Context
+
+### Integrating with an Existing Project
+
+1. Ensure the existing project has a Python environment and **activate it**
+2. If the `conport-aimed` MCP server is already running, it should create `context_portal_aimed/` automatically in the project root
+3. Add `context_portal_aimed/` to `.gitignore` (recommended)
+4. Start interacting with your AI assistant — you should be prompted to launch the UI. If not, launch it manually:
+   ```bash
+   python context_portal_aimed/portal_launcher.py
+   ```
 
 ## Advanced Configuration
 

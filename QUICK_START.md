@@ -169,14 +169,16 @@ If `context_portal_aimed/` was created before activating your environment:
 rm -rf context_portal_aimed/   # Linux/macOS/WSL
 # OR
 Remove-Item -Recurse context_portal_aimed/   # Windows PowerShell
+
 # 3. Restart conport-aimed MCP server
 ```
 
 ### Folder Not Appearing?
+- Restart conport-aimed MCP server
 - Refresh IDE (F5)
-- Check: `ls -la | grep context` (Linux/macOS/WSL) or `dir | findstr context` (Windows)
 - Verify custom instructions are applied
 - Check MCP server logs
+- Read [INTALLATION_GUIDE.md](INSTALLATION_GUIDE.md)
 
 ### WSL2 Network Issues?
 AIMED auto-configures WSL2 networking. Dashboard URL uses WSL2 IP (e.g., `http://172.30.143.144:3000`), not `localhost:3000`.

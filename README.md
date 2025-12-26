@@ -137,52 +137,36 @@ Copy the entire content of the relevant strategy file into your LLM's custom ins
 
 Feel free to use these as a base for your own custom instructions.
 
-## Quick Start
+## Getting Started
 
-See [Installation Guide](INSTALLATION_GUIDE.md) for the actual setup instructions (especially the section “Creating Your First Project”).
+### 📋 Quick Start Guide (Copy-Paste Instructions)
+**→ [QUICK_START.md](QUICK_START.md)** - Condensed copy-paste instructions to get up and running fast
 
-### 1) Install AIMED (one-time)
+Perfect for experienced users who want minimal explanations and maximum action.
 
-1. **Clone repository and install dependencies**
-   ```bash
-   git clone https://github.com/drew1two/AIMED.git
-   cd AIMED
-   # Python setup (see installation guide)
-   # Node.js setup (see installation guide)
-   ```
+### 📖 Full Installation Guide (Detailed Explanations)
+**→ [INSTALLATION_GUIDE.md](INSTALLATION_GUIDE.md)** - Complete setup instructions with troubleshooting
 
-2. **Configure MCP client in your IDE**
-   - Add the `conport-aimed` MCP server configuration
-   - See the installation guide for platform-specific examples
+Includes detailed explanations, troubleshooting steps, advanced configuration options, and platform-specific guidance.
 
-### 2) Use AIMED in a project (recommended workflow)
+---
 
-#### New project (important ordering)
+### Quick Overview
 
-1. In your IDE’s MCP panel: **turn OFF** the `conport-aimed` MCP server
-2. Create your new project folder and **create + activate** its Python environment (venv/conda/etc.)
-3. In your IDE’s MCP panel: **turn ON** the `conport-aimed` MCP server again
-   - This will create `context_portal_aimed/` in your project automatically
-4. (Recommended) add `context_portal_aimed/` to your project’s `.gitignore`
-   - Commit it only if you intentionally want to share the project’s AIMED dashboard/history with others
-5. Launch the dashboard:
-   ```bash
-   python context_portal_aimed/portal_launcher.py
-   ```
+**New Project Workflow:**
+1. **Turn OFF** `conport-aimed` MCP server in your IDE
+2. Create project folder + Python environment (venv/conda/etc.) and **activate it**
+3. **Turn ON** `conport-aimed` MCP server (creates `context_portal_aimed/` automatically)
+4. Add `context_portal_aimed/` to `.gitignore`
+5. Launch dashboard: `python context_portal_aimed/portal_launcher.py`
 
-**If `context_portal_aimed/` was created before you made/activated the new env:** finish setting up the env, delete `context_portal_aimed/`, then restart the `conport-aimed` MCP server once.
+**Existing Project:**
+1. Ensure Python environment exists and is **activated**
+2. Turn on `conport-aimed` MCP server (creates `context_portal_aimed/` if missing)
+3. Add `context_portal_aimed/` to `.gitignore`
+4. Launch dashboard: `python context_portal_aimed/portal_launcher.py`
 
-#### Existing project
-
-1. Ensure the project already has a Python environment and **activate it**
-2. Ensure the `conport-aimed` MCP server is running (it will create `context_portal_aimed/` if missing)
-3. (Recommended) add `context_portal_aimed/` to `.gitignore`
-4. Launch the dashboard:
-   ```bash
-   python context_portal_aimed/portal_launcher.py
-   ```
-
-**Architecture**: AIMED uses a modified version of ConPort MCP which is the equivalent of Conport MCP v0.3.8. It creates `context_portal_aimed/` directory for workspace isolation. Each project runs independent server instances with separate port allocation.
+**Architecture**: AIMED uses a modified version of ConPort MCP (equivalent to v0.3.8). It creates `context_portal_aimed/` directory for workspace isolation. Each project runs independent server instances with separate port allocation.
 
 ## Features
 
@@ -222,7 +206,8 @@ See [NOTICE](NOTICE) for complete attribution details.
 
 ## Documentation
 
-- [Installation Guide](INSTALLATION_GUIDE.md) - Complete setup instructions
+- **[Quick Start Guide](QUICK_START.md)** - Copy-paste instructions to get running fast
+- [Installation Guide](INSTALLATION_GUIDE.md) - Complete setup instructions with troubleshooting
 - [Tips & Tricks](TIPS_AND_TRICKS.md) - Best practices for working with AI assistants
 - [Release Notes](RELEASE_NOTES.md) - Version history
 - [AIMED Benefits](AIMED-BENEFITS.md) - Complete features and capabilities

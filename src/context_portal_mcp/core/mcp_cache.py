@@ -8,7 +8,7 @@ import logging
 import re
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, List
 
 from .config import get_database_path
 from .exceptions import DatabaseError
@@ -23,6 +23,9 @@ _DEFAULT_CAPTURE_CONFIG: Dict[str, Any] = {
 }
 
 _SAFE_BASENAME_PATTERN = re.compile(r"[^A-Za-z0-9._-]+")
+
+# Matches our capture naming convention: `<stem>_YYYYMMDD_HHMMSS_mmm.json`
+_CAPTURE_TIMESTAMP_SUFFIX_RE = re.compile(r"_(\d{8}_\d{6}_\d{3})\.json$")
 
 
 def get_mcp_cache_dir(workspace_id: str) -> Path:
@@ -176,3 +179,108 @@ def write_captured_result(workspace_id: str, tool_name: str, result: Any) -> Opt
     save_mcp_setting(workspace_id, "output_capture", config)
     return relative_capture
 
+
+def list_captured_files(
+    workspace_id: str,
+    *,
+    limit: Optional[int] = 10,
+    name_like: Optional[str] = None,
+    since: Optional[datetime] = None,
+    until: Optional[datetime] = None,
+) -> List[Dict[str, Any]]:
+    """List capture files in `<workspace_id>/conport-aimed_output/` (newest first).
+
+    Filters:
+    - name_like: case-insensitive substring match on filename
+    - since/until: inclusive datetime range on *captured_at* when parseable from filename;
+      otherwise falls back to file mtime.
+
+    Returns list of objects:
+    - capture_file: relative path from workspace
+    - filename
+    - captured_at: ISO string
+    - source: 'filename' or 'mtime'
+    """
+
+    def _to_utc_naive(dt: Optional[datetime]) -> Optional[datetime]:
+        if dt is None:
+            return None
+        # Treat naive datetimes as UTC (tool docs say UTC if naive)
+        if dt.tzinfo is None:
+            return dt
+        # Convert aware -> naive UTC
+        try:
+            from datetime import timezone
+
+            return dt.astimezone(timezone.utc).replace(tzinfo=None)
+        except Exception:
+            return dt.replace(tzinfo=None)
+
+    since_u = _to_utc_naive(since)
+    until_u = _to_utc_naive(until)
+
+    output_dir = Path(workspace_id) / "conport-aimed_output"
+    if not output_dir.exists() or not output_dir.is_dir():
+        return []
+
+    needle = (name_like or "").lower().strip() if name_like else None
+
+    items: List[Dict[str, Any]] = []
+
+    for p in output_dir.glob("*.json"):
+        if not p.is_file():
+            continue
+
+        filename = p.name
+        if needle and needle not in filename.lower():
+            continue
+
+        captured_at: Optional[datetime] = None
+        source = "mtime"
+
+        m = _CAPTURE_TIMESTAMP_SUFFIX_RE.search(filename)
+        if m:
+            try:
+                captured_at = datetime.strptime(m.group(1), "%Y%m%d_%H%M%S_%f")
+                source = "filename"
+            except Exception:
+                captured_at = None
+
+        if captured_at is None:
+            try:
+                captured_at = datetime.utcfromtimestamp(p.stat().st_mtime)
+            except Exception:
+                # As a last resort, use 'now' so the entry is still listable.
+                captured_at = datetime.utcnow()
+
+        if since_u and captured_at < since_u:
+            continue
+        if until_u and captured_at > until_u:
+            continue
+
+        try:
+            rel = str(p.relative_to(Path(workspace_id)))
+        except Exception:
+            rel = str(p)
+
+        items.append(
+            {
+                "capture_file": rel,
+                "filename": filename,
+                "captured_at": captured_at.isoformat(timespec="milliseconds") + "Z",
+                "source": source,
+            }
+        )
+
+    # Newest first
+    items.sort(key=lambda x: x.get("captured_at", ""), reverse=True)
+
+    if limit is None:
+        return items
+    try:
+        lim = int(limit)
+    except Exception:
+        lim = 10
+    if lim < 0:
+        return items
+    return items[:lim]

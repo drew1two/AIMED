@@ -75,6 +75,24 @@ def test_filename_format_includes_timestamp():
         assert name.startswith("res_") and name.endswith(".json")
 
 
+def test_list_captured_files_supports_last_n_and_name_like():
+    with tempfile.TemporaryDirectory() as tmp:
+        workspace_id = tmp
+        mcp_cache.set_output_capture_config(workspace_id, enabled=True, base_filename="alpha.json")
+        mcp_cache.write_captured_result(workspace_id, "t1", {"a": 1})
+        mcp_cache.set_output_capture_config(workspace_id, enabled=True, base_filename="beta.json")
+        mcp_cache.write_captured_result(workspace_id, "t2", {"b": 2})
+
+        all_files = mcp_cache.list_captured_files(workspace_id, limit=10)
+        assert len(all_files) >= 2
+        # last N
+        last_one = mcp_cache.list_captured_files(workspace_id, limit=1)
+        assert len(last_one) == 1
+        # name_like filter
+        beta_only = mcp_cache.list_captured_files(workspace_id, limit=10, name_like="beta")
+        assert all("beta" in f["filename"].lower() for f in beta_only)
+
+
 def test_output_capture_help_tool_is_static_and_mentions_paths():
     # Importing main registers tool functions; we only validate the help function output.
     from src.context_portal_mcp import main as conport_main

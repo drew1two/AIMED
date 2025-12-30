@@ -47,21 +47,26 @@ except ImportError:
 
 
 # --- Output Capture Helpers (workspace-scoped, best-effort) ---
-def _maybe_capture_and_annotate(workspace_id: str, tool_name: str, result: Any) -> Any:
-    """If capture enabled, write result; add capture_file when result is a dict.
+def _maybe_capture_and_annotate(
+    workspace_id: str,
+    tool_name: str,
+    result: Any,
+    *,
+    annotate_dict_result: bool = False,
+) -> Any:
+    """If capture enabled, write result.
 
     For list results, shape is preserved; filename is stored in output_capture.last_capture_file
     via the cache for visibility through get_output_capture_status.
+
+    IMPORTANT: By default we **do not modify tool return values**. Some MCP clients
+    validate tool responses strictly and will error if extra fields are injected.
     """
     if not workspace_id:
         return result
 
-    capture_file = mcp_cache.write_captured_result(workspace_id, tool_name, result)
-    if capture_file and isinstance(result, dict):
-        # Avoid mutating caller-owned dict unexpectedly
-        annotated = dict(result)
-        annotated["capture_file"] = capture_file
-        return annotated
+    # Best-effort: write capture, but always return the original result unchanged.
+    mcp_cache.write_captured_result(workspace_id, tool_name, result)
     return result
 
 log = logging.getLogger(__name__)
@@ -282,6 +287,61 @@ async def tool_get_output_capture_status(
 
 
 @conport_mcp.tool(
+    name="get_last_capture_file",
+    description=(
+        "Returns the last captured output file path for the given workspace (if any). "
+        "This is a lightweight alternative to fetching full capture status."
+    ),
+)
+async def tool_get_last_capture_file(
+    workspace_id: Annotated[str, Field(description="Identifier for the workspace (e.g., absolute path)")],
+    ctx: Context,
+) -> Dict[str, Any]:
+    try:
+        config = mcp_cache.get_output_capture_config(workspace_id)
+        last_file = config.get("last_capture_file")
+        exists = False
+        if last_file:
+            try:
+                exists = (Path(workspace_id) / last_file).exists()
+            except Exception:
+                exists = False
+        return {"status": "success", "last_capture_file": last_file, "exists": exists}
+    except Exception as e:
+        log.error(f"Error in get_last_capture_file: {e}")
+        raise exceptions.ContextPortalError(f"Server error processing get_last_capture_file: {type(e).__name__}")
+
+
+@conport_mcp.tool(
+    name="list_captured_files",
+    description=(
+        "Lists captured output files for a workspace (newest first), with optional filtering. "
+        "Use this for 'last N', 'name like', and date-range queries without changing other tool outputs."
+    ),
+)
+async def tool_list_captured_files(
+    workspace_id: Annotated[str, Field(description="Identifier for the workspace (e.g., absolute path)")],
+    ctx: Context,
+    limit: Annotated[Optional[int], Field(description="Max number of files to return (newest first). Default 10")] = 10,
+    name_like: Annotated[Optional[str], Field(description="Substring filter applied to filenames (case-insensitive)")] = None,
+    since: Annotated[Optional[datetime], Field(description="Only include files captured at/after this timestamp (UTC if naive)")] = None,
+    until: Annotated[Optional[datetime], Field(description="Only include files captured at/before this timestamp (UTC if naive)")] = None,
+) -> Dict[str, Any]:
+    try:
+        files = mcp_cache.list_captured_files(
+            workspace_id=workspace_id,
+            limit=limit,
+            name_like=name_like,
+            since=since,
+            until=until,
+        )
+        return {"status": "success", "files": files, "count": len(files)}
+    except Exception as e:
+        log.error(f"Error in list_captured_files: {e}")
+        raise exceptions.ContextPortalError(f"Server error processing list_captured_files: {type(e).__name__}")
+
+
+@conport_mcp.tool(
     name="start_output_capture",
     description=(
         "Convenience tool: enable output capture for the workspace. "
@@ -363,11 +423,12 @@ def _build_output_capture_help_payload() -> Dict[str, Any]:
                 "timestamp": "UTC timestamp (YYYYMMDD_HHMMSS_mmm) is appended before .json",
                 "example": "results_20251230_103211_893.json",
             },
-            "response_annotation": {
-                "dict_results": "If a tool returns an object (dict), ConPort adds capture_file to the returned object.",
-                "list_results": "If a tool returns a list, the list shape is preserved; use get_output_capture_status.output_capture.last_capture_file to find the last written file.",
-            },
+            "response_annotation": "Tool responses are NOT modified when capture is enabled (to avoid breaking strict output validators).",
             "persistence": "Workspace-scoped config is stored in <workspace_id>/context_portal_aimed/mcp-cache/output_capture.json",
+            "finding_the_file": {
+                "lightweight": "Call get_last_capture_file(workspace_id)",
+                "last_n_or_filters": "Call list_captured_files(workspace_id, limit=..., name_like=..., since=..., until=...)",
+            },
         },
         "quick_start_examples": [
             {
@@ -380,15 +441,15 @@ def _build_output_capture_help_payload() -> Dict[str, Any]:
                     {
                         "tool": "get_product_context",
                         "args": {"workspace_id": "/ABS/PATH/TO/WORKSPACE"},
-                        "note": "If capture is enabled, the returned object will include capture_file.",
+                        "note": "Tool response remains unchanged; use get_last_capture_file or get_output_capture_status to see the last written file.",
                     },
                     {"tool": "stop_output_capture", "args": {"workspace_id": "/ABS/PATH/TO/WORKSPACE"}},
                 ],
             },
             {
-                "title": "Check capture status / last written file",
+                "title": "Check last written file",
                 "steps": [
-                    {"tool": "get_output_capture_status", "args": {"workspace_id": "/ABS/PATH/TO/WORKSPACE"}},
+                    {"tool": "get_last_capture_file", "args": {"workspace_id": "/ABS/PATH/TO/WORKSPACE"}},
                 ],
             },
         ],

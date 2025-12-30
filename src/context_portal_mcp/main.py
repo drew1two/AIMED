@@ -29,12 +29,12 @@ mcp = FastMCP("Context Portal MCP Server")
 
 # Local imports
 try:
-    from .handlers import mcp_handlers # We will adapt these
-    from .db import database, models # models for tool argument types
-    from .db.database import ensure_alembic_files_exist # Import the provisioning function
-    from .core import exceptions # For custom exceptions if FastMCP doesn't map them
-    from .core.workspace_detector import resolve_workspace_id, WorkspaceDetector # Import workspace detection
-    from .core import ui_cache # Import UI cache functions
+    from .handlers import mcp_handlers  # We will adapt these
+    from .db import database, models  # models for tool argument types
+    from .db.database import ensure_alembic_files_exist  # Import the provisioning function
+    from .core import exceptions  # For custom exceptions if FastMCP doesn't map them
+    from .core.workspace_detector import resolve_workspace_id, WorkspaceDetector  # Import workspace detection
+    from .core import ui_cache, mcp_cache  # Import UI cache functions and MCP cache
 except ImportError:
     import os
     sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
@@ -43,7 +43,26 @@ except ImportError:
     from src.context_portal_mcp.db.database import ensure_alembic_files_exist
     from src.context_portal_mcp.core import exceptions
     from src.context_portal_mcp.core.workspace_detector import resolve_workspace_id, WorkspaceDetector
-    from src.context_portal_mcp.core import ui_cache
+    from src.context_portal_mcp.core import ui_cache, mcp_cache
+
+
+# --- Output Capture Helpers (workspace-scoped, best-effort) ---
+def _maybe_capture_and_annotate(workspace_id: str, tool_name: str, result: Any) -> Any:
+    """If capture enabled, write result; add capture_file when result is a dict.
+
+    For list results, shape is preserved; filename is stored in output_capture.last_capture_file
+    via the cache for visibility through get_output_capture_status.
+    """
+    if not workspace_id:
+        return result
+
+    capture_file = mcp_cache.write_captured_result(workspace_id, tool_name, result)
+    if capture_file and isinstance(result, dict):
+        # Avoid mutating caller-owned dict unexpectedly
+        annotated = dict(result)
+        annotated["capture_file"] = capture_file
+        return annotated
+    return result
 
 log = logging.getLogger(__name__)
 
@@ -175,7 +194,8 @@ async def tool_get_product_context(
     try:
         # Construct the Pydantic model for the handler
         pydantic_args = models.GetContextArgs(workspace_id=workspace_id)
-        return mcp_handlers.handle_get_product_context(pydantic_args)
+        result = mcp_handlers.handle_get_product_context(pydantic_args)
+        return _maybe_capture_and_annotate(workspace_id, "get_product_context", result)
     except exceptions.ContextPortalError as e:
         log.error(f"Error in get_product_context handler: {e}")
         raise
@@ -217,13 +237,169 @@ async def tool_get_active_context(
 ) -> Dict[str, Any]:
     try:
         pydantic_args = models.GetContextArgs(workspace_id=workspace_id)
-        return mcp_handlers.handle_get_active_context(pydantic_args)
+        result = mcp_handlers.handle_get_active_context(pydantic_args)
+        return _maybe_capture_and_annotate(workspace_id, "get_active_context", result)
     except exceptions.ContextPortalError as e:
         log.error(f"Error in get_active_context handler: {e}")
         raise
     except Exception as e:
         log.error(f"Error processing args for get_active_context: {e}. Received workspace_id: {workspace_id}")
         raise exceptions.ContextPortalError(f"Server error processing get_active_context: {type(e).__name__}")
+
+
+@conport_mcp.tool(name="set_output_capture", description="Enables/disables workspace-scoped output capture for tool results.")
+async def tool_set_output_capture(
+    workspace_id: Annotated[str, Field(description="Identifier for the workspace (e.g., absolute path)")],
+    enabled: Annotated[bool, Field(description="Enable/disable capture")] ,
+    ctx: Context,
+    base_filename: Annotated[Optional[str], Field(description="Base filename for captured JSON (sanitized, .json enforced)")] = "results.json",
+    timestamp_tz: Annotated[Optional[str], Field(description="Timezone label for timestamps; default UTC")] = "UTC",
+) -> Dict[str, Any]:
+    try:
+        config = mcp_cache.set_output_capture_config(
+            workspace_id=workspace_id,
+            enabled=enabled,
+            base_filename=base_filename,
+            timestamp_tz=timestamp_tz,
+        )
+        return {"status": "success", "output_capture": config}
+    except Exception as e:
+        log.error(f"Error in set_output_capture: {e}")
+        raise exceptions.ContextPortalError(f"Server error processing set_output_capture: {type(e).__name__}")
+
+
+@conport_mcp.tool(name="get_output_capture_status", description="Retrieves workspace-scoped output capture configuration and last captured file.")
+async def tool_get_output_capture_status(
+    workspace_id: Annotated[str, Field(description="Identifier for the workspace (e.g., absolute path)")],
+    ctx: Context,
+) -> Dict[str, Any]:
+    try:
+        config = mcp_cache.get_output_capture_config(workspace_id)
+        return {"status": "success", "output_capture": config}
+    except Exception as e:
+        log.error(f"Error in get_output_capture_status: {e}")
+        raise exceptions.ContextPortalError(f"Server error processing get_output_capture_status: {type(e).__name__}")
+
+
+@conport_mcp.tool(
+    name="start_output_capture",
+    description=(
+        "Convenience tool: enable output capture for the workspace. "
+        "Captured results are written (best-effort) to `<workspace_id>/conport-aimed_output/` with a timestamped filename."
+    ),
+)
+async def tool_start_output_capture(
+    workspace_id: Annotated[str, Field(description="Identifier for the workspace (e.g., absolute path)")],
+    ctx: Context,
+    base_filename: Annotated[Optional[str], Field(description="Base filename for captured JSON (sanitized, .json enforced)")] = "results.json",
+    timestamp_tz: Annotated[Optional[str], Field(description="Timezone label for timestamps; default UTC")] = "UTC",
+) -> Dict[str, Any]:
+    """Alias for set_output_capture(enabled=True, ...)."""
+    try:
+        config = mcp_cache.set_output_capture_config(
+            workspace_id=workspace_id,
+            enabled=True,
+            base_filename=base_filename,
+            timestamp_tz=timestamp_tz,
+        )
+        return {"status": "success", "output_capture": config}
+    except Exception as e:
+        log.error(f"Error in start_output_capture: {e}")
+        raise exceptions.ContextPortalError(f"Server error processing start_output_capture: {type(e).__name__}")
+
+
+@conport_mcp.tool(
+    name="stop_output_capture",
+    description="Convenience tool: disable output capture for the workspace.",
+)
+async def tool_stop_output_capture(
+    workspace_id: Annotated[str, Field(description="Identifier for the workspace (e.g., absolute path)")],
+    ctx: Context,
+) -> Dict[str, Any]:
+    """Alias for set_output_capture(enabled=False, ...)."""
+    try:
+        current = mcp_cache.get_output_capture_config(workspace_id)
+        config = mcp_cache.set_output_capture_config(
+            workspace_id=workspace_id,
+            enabled=False,
+            base_filename=current.get("base_filename") or "results.json",
+            timestamp_tz=current.get("timestamp_tz") or "UTC",
+        )
+        return {"status": "success", "output_capture": config}
+    except Exception as e:
+        log.error(f"Error in stop_output_capture: {e}")
+        raise exceptions.ContextPortalError(f"Server error processing stop_output_capture: {type(e).__name__}")
+
+
+@conport_mcp.tool(
+    name="get_output_capture_help",
+    description=(
+        "Returns built-in usage guidance and examples for output capture. "
+        "This is intentionally a tool (not project data) so an MCP client/LLM can discover how to use output capture reliably."
+    ),
+)
+async def tool_get_output_capture_help(ctx: Context) -> Dict[str, Any]:
+    """Self-describing tool: returns stable instructions/examples for output capture."""
+    return _build_output_capture_help_payload()
+
+
+def _build_output_capture_help_payload() -> Dict[str, Any]:
+    """Build stable instructions/examples for output capture.
+
+    Kept as a plain function so it can be called from tests without going through FastMCP's
+    `FunctionTool` wrapper.
+    """
+    return {
+        "feature": "output_capture",
+        "summary": (
+            "When output capture is enabled for a workspace, ConPort will (best-effort) write tool results to a timestamped JSON file. "
+            "The tool still returns its normal response; capture is additive."
+        ),
+        "how_it_works": {
+            "toggle": "Use start_output_capture/stop_output_capture (or set_output_capture/get_output_capture_status).",
+            "where_files_go": "<workspace_id>/conport-aimed_output/",
+            "filename_rules": {
+                "base_filename": "User-supplied base_filename is sanitized and forced to end with .json",
+                "timestamp": "UTC timestamp (YYYYMMDD_HHMMSS_mmm) is appended before .json",
+                "example": "results_20251230_103211_893.json",
+            },
+            "response_annotation": {
+                "dict_results": "If a tool returns an object (dict), ConPort adds capture_file to the returned object.",
+                "list_results": "If a tool returns a list, the list shape is preserved; use get_output_capture_status.output_capture.last_capture_file to find the last written file.",
+            },
+            "persistence": "Workspace-scoped config is stored in <workspace_id>/context_portal_aimed/mcp-cache/output_capture.json",
+        },
+        "quick_start_examples": [
+            {
+                "title": "Enable capture, run a tool, then disable capture",
+                "steps": [
+                    {
+                        "tool": "start_output_capture",
+                        "args": {"workspace_id": "/ABS/PATH/TO/WORKSPACE", "base_filename": "results.json"},
+                    },
+                    {
+                        "tool": "get_product_context",
+                        "args": {"workspace_id": "/ABS/PATH/TO/WORKSPACE"},
+                        "note": "If capture is enabled, the returned object will include capture_file.",
+                    },
+                    {"tool": "stop_output_capture", "args": {"workspace_id": "/ABS/PATH/TO/WORKSPACE"}},
+                ],
+            },
+            {
+                "title": "Check capture status / last written file",
+                "steps": [
+                    {"tool": "get_output_capture_status", "args": {"workspace_id": "/ABS/PATH/TO/WORKSPACE"}},
+                ],
+            },
+        ],
+        "notes": {
+            "no_llm_required": True,
+            "security": (
+                "Captured outputs are written to a fixed workspace-local directory (<workspace_id>/conport-aimed_output/) "
+                "to avoid arbitrary filesystem writes."
+            ),
+        },
+    }
 
 @conport_mcp.tool(name="update_active_context", description="Updates the active context. Accepts full `content` (object) or `patch_content` (object) for partial updates (use `__DELETE__` as a value in patch to remove a key).")
 async def tool_update_active_context(
@@ -290,7 +466,8 @@ async def tool_get_decisions(
             tags_filter_include_all=tags_filter_include_all,
             tags_filter_include_any=tags_filter_include_any
         )
-        return mcp_handlers.handle_get_decisions(pydantic_args)
+        result = mcp_handlers.handle_get_decisions(pydantic_args)
+        return _maybe_capture_and_annotate(workspace_id, "get_decisions", result)
     except exceptions.ContextPortalError as e:
         log.error(f"Error in get_decisions handler: {e}")
         raise
@@ -314,7 +491,8 @@ async def tool_search_decisions_fts(
             query_term=query_term,
             limit=limit
         )
-        return mcp_handlers.handle_search_decisions_fts(pydantic_args)
+        result = mcp_handlers.handle_search_decisions_fts(pydantic_args)
+        return _maybe_capture_and_annotate(workspace_id, "search_decisions_fts", result)
     except exceptions.ContextPortalError as e:
         log.error(f"Error in search_decisions_fts handler: {e}")
         raise
@@ -370,7 +548,8 @@ async def tool_search_progress_fts(
             query_term=query_term,
             limit=limit
         )
-        return mcp_handlers.handle_search_progress_fts(pydantic_args)
+        result = mcp_handlers.handle_search_progress_fts(pydantic_args)
+        return _maybe_capture_and_annotate(workspace_id, "search_progress_fts", result)
     except exceptions.ContextPortalError as e:
         log.error(f"Error in search_progress_fts handler: {e}")
         raise
@@ -391,7 +570,8 @@ async def tool_search_system_patterns_fts(
             query_term=query_term,
             limit=limit
         )
-        return mcp_handlers.handle_search_system_patterns_fts(pydantic_args)
+        result = mcp_handlers.handle_search_system_patterns_fts(pydantic_args)
+        return _maybe_capture_and_annotate(workspace_id, "search_system_patterns_fts", result)
     except exceptions.ContextPortalError as e:
         log.error(f"Error in search_system_patterns_fts handler: {e}")
         raise
@@ -414,7 +594,8 @@ async def tool_search_context_fts(
             context_type_filter=context_type_filter,
             limit=limit
         )
-        return mcp_handlers.handle_search_context_fts(pydantic_args)
+        result = mcp_handlers.handle_search_context_fts(pydantic_args)
+        return _maybe_capture_and_annotate(workspace_id, "search_context_fts", result)
     except exceptions.ContextPortalError as e:
         log.error(f"Error in search_context_fts handler: {e}")
         raise
@@ -470,7 +651,8 @@ async def tool_get_progress(
             parent_id_filter=parent_id_filter,
             limit=limit
         )
-        return mcp_handlers.handle_get_progress(pydantic_args)
+        result = mcp_handlers.handle_get_progress(pydantic_args)
+        return _maybe_capture_and_annotate(workspace_id, "get_progress", result)
     except exceptions.ContextPortalError as e:
         log.error(f"Error in get_progress handler: {e}")
         raise
@@ -574,7 +756,8 @@ async def tool_get_system_patterns(
             tags_filter_include_all=tags_filter_include_all,
             tags_filter_include_any=tags_filter_include_any
         )
-        return mcp_handlers.handle_get_system_patterns(pydantic_args)
+        result = mcp_handlers.handle_get_system_patterns(pydantic_args)
+        return _maybe_capture_and_annotate(workspace_id, "get_system_patterns", result)
     except exceptions.ContextPortalError as e:
         log.error(f"Error in get_system_patterns handler: {e}")
         raise
@@ -621,7 +804,8 @@ async def tool_get_custom_data(
             category=category,
             key=key
         )
-        return mcp_handlers.handle_get_custom_data(pydantic_args)
+        result = mcp_handlers.handle_get_custom_data(pydantic_args)
+        return _maybe_capture_and_annotate(workspace_id, "get_custom_data", result)
     except exceptions.ContextPortalError as e:
         log.error(f"Error in get_custom_data handler: {e}")
         raise
@@ -640,7 +824,8 @@ async def tool_get_all_custom_data_by_id_desc(
             workspace_id=workspace_id,
             limit=limit
         )
-        return mcp_handlers.handle_get_all_custom_data_by_id_desc(pydantic_args)
+        result = mcp_handlers.handle_get_all_custom_data_by_id_desc(pydantic_args)
+        return _maybe_capture_and_annotate(workspace_id, "get_all_custom_data_by_id_desc", result)
     except exceptions.ContextPortalError as e:
         log.error(f"Error in get_all_custom_data_by_id_desc handler: {e}")
         raise
@@ -681,7 +866,8 @@ async def tool_search_project_glossary_fts(
             query_term=query_term,
             limit=limit
         )
-        return mcp_handlers.handle_search_project_glossary_fts(pydantic_args)
+        result = mcp_handlers.handle_search_project_glossary_fts(pydantic_args)
+        return _maybe_capture_and_annotate(workspace_id, "search_project_glossary_fts", result)
     except exceptions.ContextPortalError as e:
         log.error(f"Error in search_project_glossary_fts handler: {e}")
         raise
@@ -775,7 +961,8 @@ async def tool_get_linked_items(
             linked_item_type_filter=linked_item_type_filter,
             limit=limit
         )
-        return mcp_handlers.handle_get_linked_items(pydantic_args)
+        result = mcp_handlers.handle_get_linked_items(pydantic_args)
+        return _maybe_capture_and_annotate(workspace_id, "get_linked_items", result)
     except exceptions.ContextPortalError as e:
         log.error(f"Error in get_linked_items handler: {e}")
         raise
@@ -796,7 +983,8 @@ async def tool_get_items_by_references(
             references=references,
             linked_items_result=linked_items_result
         )
-        return mcp_handlers.handle_get_items_by_references(pydantic_args)
+        result = mcp_handlers.handle_get_items_by_references(pydantic_args)
+        return _maybe_capture_and_annotate(workspace_id, "get_items_by_references", result)
     except exceptions.ContextPortalError as e:
         log.error(f"Error in get_items_by_references handler: {e}")
         raise
@@ -822,7 +1010,8 @@ async def tool_search_custom_data_value_fts(
             category_filter=category_filter,
             limit=limit
         )
-        return mcp_handlers.handle_search_custom_data_value_fts(pydantic_args)
+        result = mcp_handlers.handle_search_custom_data_value_fts(pydantic_args)
+        return _maybe_capture_and_annotate(workspace_id, "search_custom_data_value_fts", result)
     except exceptions.ContextPortalError as e:
         log.error(f"Error in search_custom_data_value_fts handler: {e}")
         raise
@@ -873,7 +1062,8 @@ async def tool_get_item_history(
             after_timestamp=after_timestamp,
             version=version
         )
-        return mcp_handlers.handle_get_item_history(pydantic_args)
+        result = mcp_handlers.handle_get_item_history(pydantic_args)
+        return _maybe_capture_and_annotate(workspace_id, "get_item_history", result)
     except exceptions.ContextPortalError as e:
         log.error(f"Error in get_item_history handler: {e}")
         raise
@@ -917,7 +1107,8 @@ async def tool_get_conport_schema(
 ) -> Dict[str, Dict[str, Any]]:
     try:
         pydantic_args = models.GetConportSchemaArgs(workspace_id=workspace_id)
-        return mcp_handlers.handle_get_conport_schema(pydantic_args)
+        result = mcp_handlers.handle_get_conport_schema(pydantic_args)
+        return _maybe_capture_and_annotate(workspace_id, "get_conport_schema", result)
     except exceptions.ContextPortalError as e:
         log.error(f"Error in get_conport_schema handler: {e}")
         raise
@@ -941,7 +1132,8 @@ async def tool_get_recent_activity_summary(
             since_timestamp=since_timestamp,
             limit_per_type=limit_per_type
         )
-        return mcp_handlers.handle_get_recent_activity_summary(pydantic_args)
+        result = mcp_handlers.handle_get_recent_activity_summary(pydantic_args)
+        return _maybe_capture_and_annotate(workspace_id, "get_recent_activity_summary", result)
     except exceptions.ContextPortalError as e:
         log.error(f"Error in get_recent_activity_summary handler: {e}")
         raise
@@ -963,9 +1155,9 @@ async def tool_semantic_search_conport(
     filter_tags_include_all: Annotated[Optional[List[str]], Field(description="Optional list of tags; results will include only items matching all of these tags.")] = None,
     filter_custom_data_categories: Annotated[Optional[List[str]], Field(description="Optional list of categories to filter by if 'custom_data' is in filter_item_types.")] = None
 ) -> List[Dict[str, Any]]:
-    """
-    MCP tool wrapper for semantic_search_conport.
-    It validates arguments using SemanticSearchConportArgs Pydantic model and calls the handler.
+    """MCP tool wrapper for semantic_search_conport.
+
+    Validates arguments using SemanticSearchConportArgs and calls the handler.
     """
     try:
         # The model's own validators will check tag filters and custom_data_category_filter.
@@ -979,7 +1171,8 @@ async def tool_semantic_search_conport(
             filter_custom_data_categories=filter_custom_data_categories
         )
         # Ensure the handler is awaited if it's async
-        return await mcp_handlers.handle_semantic_search_conport(pydantic_args)
+        result = await mcp_handlers.handle_semantic_search_conport(pydantic_args)
+        return _maybe_capture_and_annotate(workspace_id, "semantic_search_conport", result)
     except exceptions.ContextPortalError as e: # Specific app errors
         log.error(f"Error in semantic_search_conport handler: {e}")
         raise
@@ -1011,7 +1204,8 @@ async def tool_get_workspace_detection_info(
             'mcp_context_workspace': detector.detect_from_mcp_context()
         })
         
-        return detection_info
+        result = detection_info
+        return _maybe_capture_and_annotate(detection_info.get('workspace_id') or "", "get_workspace_detection_info", result)
     except Exception as e:
         log.error(f"Error in get_workspace_detection_info: {e}")
         raise exceptions.ContextPortalError(f"Server error getting workspace detection info: {type(e).__name__} - {e}")
@@ -1548,6 +1742,25 @@ def main_logic(sys_args=None):
     parser.add_argument("--debug", action="store_true", help="Enable verbose debug output")
 
     args = parser.parse_args(args=sys_args)
+
+    # --- Startup Provisioning (workspace-scoped caches) ---
+    # If the server is started with an explicit --workspace_id (e.g. via
+    # [`context_portal_aimed/portal_launcher.py`](context_portal_aimed/portal_launcher.py:884)),
+    # proactively create the MCP cache directory under:
+    # `<workspace_id>/context_portal_aimed/mcp-cache/`
+    # so the folder exists even before the first MCP tool call.
+    if args.workspace_id:
+        try:
+            # Also ensure the default output_capture setting exists, with enabled=false.
+            mcp_cache.get_mcp_cache_dir(args.workspace_id)
+            mcp_cache.save_mcp_setting(
+                args.workspace_id,
+                "output_capture",
+                mcp_cache.get_output_capture_config(args.workspace_id),
+            )
+        except Exception as e:
+            # Best-effort: do not prevent server startup if cache provisioning fails.
+            log.warning(f"Failed to provision mcp-cache directory for workspace '{args.workspace_id}': {e}")
 
     # Enable debug output only if requested
     if not args.debug:

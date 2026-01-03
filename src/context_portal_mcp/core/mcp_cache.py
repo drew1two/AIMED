@@ -17,9 +17,11 @@ log = logging.getLogger(__name__)
 
 _DEFAULT_CAPTURE_CONFIG: Dict[str, Any] = {
     "enabled": False,
-    "base_filename": "results.json",
+    # When None, filename stem defaults to the tool name (e.g. get_product_context_YYYY...json)
+    "base_filename": None,
     "timestamp_tz": "UTC",
     "last_capture_file": None,
+    "last_capture_tool": None,
 }
 
 _SAFE_BASENAME_PATTERN = re.compile(r"[^A-Za-z0-9._-]+")
@@ -40,16 +42,31 @@ def get_mcp_cache_dir(workspace_id: str) -> Path:
         raise DatabaseError(f"Could not create MCP cache directory: {e}")
 
 
-def _sanitize_base_filename(name: str) -> str:
-    """Sanitize a user-supplied base filename and enforce `.json` extension."""
+def _sanitize_base_filename(name: Optional[str]) -> Optional[str]:
+    """Sanitize a user-supplied base filename and enforce `.json` extension.
+
+    Returns None if name is None/empty, which signals "auto-naming".
+    """
+    if name is None:
+        return None
+
+    try:
+        name = str(name).strip()
+    except Exception:
+        return None
+
+    if not name:
+        return None
+
     try:
         name = Path(name).name  # strip any path components
     except Exception:
-        name = "results.json"
+        # fallback to raw string
+        pass
 
     name = _SAFE_BASENAME_PATTERN.sub("_", name).strip("._")
     if not name:
-        name = "results"
+        return None
     if not name.lower().endswith(".json"):
         name = f"{name}.json"
     return name
@@ -90,7 +107,7 @@ def get_output_capture_config(workspace_id: str) -> Dict[str, Any]:
     """Return output capture config merged with defaults and sanitized filename."""
     stored = load_mcp_setting(workspace_id, "output_capture", {}) or {}
     config = {**_DEFAULT_CAPTURE_CONFIG, **stored}
-    config["base_filename"] = _sanitize_base_filename(config.get("base_filename", "results.json"))
+    config["base_filename"] = _sanitize_base_filename(config.get("base_filename"))
     if config.get("timestamp_tz") is None:
         config["timestamp_tz"] = "UTC"
     return config
@@ -99,7 +116,7 @@ def get_output_capture_config(workspace_id: str) -> Dict[str, Any]:
 def set_output_capture_config(
     workspace_id: str,
     enabled: bool,
-    base_filename: str,
+    base_filename: Optional[str] = None,
     timestamp_tz: Optional[str] = "UTC",
 ) -> Dict[str, Any]:
     """Update and persist output capture config. Returns the saved config."""
@@ -107,7 +124,8 @@ def set_output_capture_config(
     current.update(
         {
             "enabled": bool(enabled),
-            "base_filename": _sanitize_base_filename(base_filename or current["base_filename"]),
+            # If base_filename is None/empty, we keep it as None to enable auto naming.
+            "base_filename": _sanitize_base_filename(base_filename),
             "timestamp_tz": timestamp_tz or current.get("timestamp_tz") or "UTC",
         }
     )
@@ -126,7 +144,14 @@ def write_captured_result(workspace_id: str, tool_name: str, result: Any) -> Opt
     if not config.get("enabled"):
         return None
 
-    base_filename = _sanitize_base_filename(config.get("base_filename", "results.json"))
+    # Filename selection:
+    # - If base_filename is set in config => use it (manual)
+    # - Otherwise => use tool_name.json (auto)
+    raw_base_filename = config.get("base_filename")
+    base_filename = _sanitize_base_filename(raw_base_filename) or _sanitize_base_filename(f"{tool_name}.json")
+    if base_filename is None:
+        # Extremely defensive fallback
+        base_filename = "results.json"
     output_dir = Path(workspace_id) / "conport-aimed_output"
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -169,13 +194,11 @@ def write_captured_result(workspace_id: str, tool_name: str, result: Any) -> Opt
     except Exception:
         relative_capture = str(output_path)
 
-    config.update(
-        {
-            "enabled": True,
-            "base_filename": base_filename,
-            "last_capture_file": relative_capture,
-        }
-    )
+    # Update last-capture pointers, but do NOT force base_filename when using auto naming.
+    config.update({"enabled": True, "last_capture_file": relative_capture, "last_capture_tool": tool_name})
+    if raw_base_filename is not None:
+        # Keep manual base filename in config (sanitized)
+        config["base_filename"] = _sanitize_base_filename(raw_base_filename)
     save_mcp_setting(workspace_id, "output_capture", config)
     return relative_capture
 

@@ -69,6 +69,51 @@ def _maybe_capture_and_annotate(
     mcp_cache.write_captured_result(workspace_id, tool_name, result)
     return result
 
+
+def _resolve_output_capture_base_filename(
+    current_base_filename: Optional[str],
+    base_filename: Optional[str],
+) -> Optional[str]:
+    """Resolve effective `base_filename` for output capture.
+
+    Policy:
+    - base_filename is None         => preserve current setting
+    - base_filename is empty string => clear to auto naming (tool name)
+    - otherwise                     => use provided value
+    """
+    if base_filename is None:
+        return current_base_filename
+    if isinstance(base_filename, str) and base_filename.strip() == "":
+        return None
+    return base_filename
+
+
+def _set_output_capture_impl(
+    *,
+    workspace_id: str,
+    enabled: bool,
+    base_filename: Optional[str],
+    timestamp_tz: Optional[str],
+) -> Dict[str, Any]:
+    """Non-decorated implementation for output capture configuration.
+
+    FastMCP wraps decorated tools into `FunctionTool` objects, which are not directly
+    callable from unit tests. This helper keeps the logic testable.
+    """
+    current = mcp_cache.get_output_capture_config(workspace_id)
+    effective_base_filename = _resolve_output_capture_base_filename(
+        current.get("base_filename"),
+        base_filename,
+    )
+
+    config = mcp_cache.set_output_capture_config(
+        workspace_id=workspace_id,
+        enabled=enabled,
+        base_filename=effective_base_filename,
+        timestamp_tz=timestamp_tz,
+    )
+    return {"status": "success", "output_capture": config}
+
 log = logging.getLogger(__name__)
 
 # Debug helpers (will be redefined based on --debug flag)
@@ -252,22 +297,36 @@ async def tool_get_active_context(
         raise exceptions.ContextPortalError(f"Server error processing get_active_context: {type(e).__name__}")
 
 
-@conport_mcp.tool(name="set_output_capture", description="Enables/disables workspace-scoped output capture for tool results.")
+@conport_mcp.tool(
+    name="set_output_capture",
+    description=(
+        "Enables/disables workspace-scoped output capture for tool results. "
+        "Supports auto-naming by tool name when base_filename is unset."
+    ),
+)
 async def tool_set_output_capture(
     workspace_id: Annotated[str, Field(description="Identifier for the workspace (e.g., absolute path)")],
     enabled: Annotated[bool, Field(description="Enable/disable capture")] ,
     ctx: Context,
-    base_filename: Annotated[Optional[str], Field(description="Base filename for captured JSON (sanitized, .json enforced)")] = "results.json",
+    base_filename: Annotated[
+        Optional[str],
+        Field(
+            description=(
+                "Optional base filename for captured JSON (sanitized, .json enforced). "
+                "If omitted, the existing setting is preserved. "
+                "If set to an empty string, capture uses auto naming (tool name)."
+            )
+        ),
+    ] = None,
     timestamp_tz: Annotated[Optional[str], Field(description="Timezone label for timestamps; default UTC")] = "UTC",
 ) -> Dict[str, Any]:
     try:
-        config = mcp_cache.set_output_capture_config(
+        return _set_output_capture_impl(
             workspace_id=workspace_id,
             enabled=enabled,
             base_filename=base_filename,
             timestamp_tz=timestamp_tz,
         )
-        return {"status": "success", "output_capture": config}
     except Exception as e:
         log.error(f"Error in set_output_capture: {e}")
         raise exceptions.ContextPortalError(f"Server error processing set_output_capture: {type(e).__name__}")
@@ -300,13 +359,14 @@ async def tool_get_last_capture_file(
     try:
         config = mcp_cache.get_output_capture_config(workspace_id)
         last_file = config.get("last_capture_file")
+        last_tool = config.get("last_capture_tool")
         exists = False
         if last_file:
             try:
                 exists = (Path(workspace_id) / last_file).exists()
             except Exception:
                 exists = False
-        return {"status": "success", "last_capture_file": last_file, "exists": exists}
+        return {"status": "success", "last_capture_file": last_file, "last_capture_tool": last_tool, "exists": exists}
     except Exception as e:
         log.error(f"Error in get_last_capture_file: {e}")
         raise exceptions.ContextPortalError(f"Server error processing get_last_capture_file: {type(e).__name__}")
@@ -346,23 +406,32 @@ async def tool_list_captured_files(
     description=(
         "Convenience tool: enable output capture for the workspace. "
         "Captured results are written (best-effort) to `<workspace_id>/conport-aimed_output/` with a timestamped filename."
+        " If base_filename is unset, captures are auto-named by tool name."
     ),
 )
 async def tool_start_output_capture(
     workspace_id: Annotated[str, Field(description="Identifier for the workspace (e.g., absolute path)")],
     ctx: Context,
-    base_filename: Annotated[Optional[str], Field(description="Base filename for captured JSON (sanitized, .json enforced)")] = "results.json",
+    base_filename: Annotated[
+        Optional[str],
+        Field(
+            description=(
+                "Optional base filename for captured JSON (sanitized, .json enforced). "
+                "If omitted, the existing setting is preserved. "
+                "If set to an empty string, capture uses auto naming (tool name)."
+            )
+        ),
+    ] = None,
     timestamp_tz: Annotated[Optional[str], Field(description="Timezone label for timestamps; default UTC")] = "UTC",
 ) -> Dict[str, Any]:
     """Alias for set_output_capture(enabled=True, ...)."""
     try:
-        config = mcp_cache.set_output_capture_config(
+        return _set_output_capture_impl(
             workspace_id=workspace_id,
             enabled=True,
             base_filename=base_filename,
             timestamp_tz=timestamp_tz,
         )
-        return {"status": "success", "output_capture": config}
     except Exception as e:
         log.error(f"Error in start_output_capture: {e}")
         raise exceptions.ContextPortalError(f"Server error processing start_output_capture: {type(e).__name__}")
@@ -382,7 +451,7 @@ async def tool_stop_output_capture(
         config = mcp_cache.set_output_capture_config(
             workspace_id=workspace_id,
             enabled=False,
-            base_filename=current.get("base_filename") or "results.json",
+            base_filename=current.get("base_filename"),
             timestamp_tz=current.get("timestamp_tz") or "UTC",
         )
         return {"status": "success", "output_capture": config}
@@ -419,15 +488,23 @@ def _build_output_capture_help_payload() -> Dict[str, Any]:
             "toggle": "Use start_output_capture/stop_output_capture (or set_output_capture/get_output_capture_status).",
             "where_files_go": "<workspace_id>/conport-aimed_output/",
             "filename_rules": {
-                "base_filename": "User-supplied base_filename is sanitized and forced to end with .json",
+                "base_filename": "Optional. If set, it is sanitized and forced to end with .json. If not set, the tool name is used.",
                 "timestamp": "UTC timestamp (YYYYMMDD_HHMMSS_mmm) is appended before .json",
-                "example": "results_20251230_103211_893.json",
+                "examples": [
+                    "get_conport_schema_20251230_103211_893.json",
+                    "results_20251230_103211_893.json",
+                ],
             },
             "response_annotation": "Tool responses are NOT modified when capture is enabled (to avoid breaking strict output validators).",
             "persistence": "Workspace-scoped config is stored in <workspace_id>/context_portal_aimed/mcp-cache/output_capture.json",
             "finding_the_file": {
                 "lightweight": "Call get_last_capture_file(workspace_id)",
                 "last_n_or_filters": "Call list_captured_files(workspace_id, limit=..., name_like=..., since=..., until=...)",
+            },
+            "auto_naming": {
+                "default": "When base_filename is not set, captures are auto-named using the tool name.",
+                "set_explicit_name": "Call start_output_capture(workspace_id, base_filename='results.json')",
+                "clear_to_auto": "Call set_output_capture(workspace_id, enabled=true, base_filename='')",
             },
         },
         "quick_start_examples": [

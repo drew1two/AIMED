@@ -93,6 +93,50 @@ def test_list_captured_files_supports_last_n_and_name_like():
         assert all("beta" in f["filename"].lower() for f in beta_only)
 
 
+def test_write_captured_result_auto_names_by_tool_when_base_filename_unset():
+    with tempfile.TemporaryDirectory() as tmp:
+        workspace_id = tmp
+        # Enable capture with auto naming (base_filename unset)
+        mcp_cache.set_output_capture_config(workspace_id, enabled=True, base_filename=None)
+        rel = mcp_cache.write_captured_result(workspace_id, "get_conport_schema", {"x": 1})
+        assert rel is not None
+        assert os.path.basename(rel).startswith("get_conport_schema_")
+
+        cfg = mcp_cache.get_output_capture_config(workspace_id)
+        assert cfg.get("last_capture_tool") == "get_conport_schema"
+
+
+def test_set_output_capture_preserves_existing_base_filename_when_omitted():
+    from src.context_portal_mcp import main as conport_main
+
+    with tempfile.TemporaryDirectory() as tmp:
+        workspace_id = tmp
+        # Start with explicit base filename
+        mcp_cache.set_output_capture_config(workspace_id, enabled=True, base_filename="results.json")
+
+        # NOTE:
+        # FastMCP wraps decorated tool functions into FunctionTool objects, so they are not
+        # directly callable in unit tests. Use the non-decorated helper.
+        conport_main._set_output_capture_impl(
+            workspace_id=workspace_id,
+            enabled=True,
+            base_filename=None,
+            timestamp_tz="UTC",
+        )
+        cfg = mcp_cache.get_output_capture_config(workspace_id)
+        assert cfg.get("base_filename") == "results.json"
+
+        # Clear to auto naming by passing empty string
+        conport_main._set_output_capture_impl(
+            workspace_id=workspace_id,
+            enabled=True,
+            base_filename="",
+            timestamp_tz="UTC",
+        )
+        cfg2 = mcp_cache.get_output_capture_config(workspace_id)
+        assert cfg2.get("base_filename") is None
+
+
 def test_output_capture_help_tool_is_static_and_mentions_paths():
     # Importing main registers tool functions; we only validate the help function output.
     from src.context_portal_mcp import main as conport_main

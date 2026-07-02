@@ -119,8 +119,8 @@ Use this when:
 
 ## Special Case Handling
 
-- Literal `${workspaceFolder}` (unexpanded): Logged at WARNING then ignored; auto-detection proceeds.
-- Non-existent provided path: If passed explicitly and does not exist, detection still runs (future enhancement may validate early).
+- Unexpanded placeholders such as `${workspaceFolder}` (or any `${...}` token): Logged at WARNING and ignored; auto-detection proceeds.
+- Non-existent or invalid provided path: Logged at WARNING and auto-detection proceeds.
 - Nested repos (e.g., Git submodules): First qualifying ancestor wins; use `--workspace-search-start` to narrow if needed.
 
 ---
@@ -142,7 +142,7 @@ Use this when:
 |---------|--------------|-------|
 | Wrong directory selected | Multiple candidate ancestors | Pin with `--workspace-search-start` or explicit `--workspace_id` |
 | Detection always falls back | No indicators present | Add a sentinel file (`README.md`, `pyproject.toml`, etc.) |
-| Literal `${workspaceFolder}` logged | IDE did not expand variable | Remove flag or rely on auto-detect |
+| Placeholder value logged (ex: `${workspaceFolder}`) | IDE did not expand variable | Remove flag or rely on auto-detect |
 | Tool reports `fallback` unexpectedly | Indicators below start path only | Adjust `--workspace-search-start` to deeper path |
 
 ---

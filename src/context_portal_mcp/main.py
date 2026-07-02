@@ -1245,7 +1245,18 @@ async def tool_get_conport_schema(
 ) -> Dict[str, Dict[str, Any]]:
     try:
         pydantic_args = models.GetConportSchemaArgs(workspace_id=workspace_id)
-        result = mcp_handlers.handle_get_conport_schema(pydantic_args)
+        # Derive the tool list from the live FastMCP registry so the reported
+        # schema can never drift from the set of actually-callable tools
+        # (the static TOOL_ARG_MODELS map omitted inline-signature tools).
+        registered_tools = await conport_mcp.get_tools()
+        registered_tool_schemas = {
+            name: tool.parameters
+            for name, tool in registered_tools.items()
+            if getattr(tool, "parameters", None)
+        }
+        result = mcp_handlers.handle_get_conport_schema(
+            pydantic_args, registered_tool_schemas=registered_tool_schemas
+        )
         return _maybe_capture_and_annotate(workspace_id, "get_conport_schema", result)
     except exceptions.ContextPortalError as e:
         log.error(f"Error in get_conport_schema handler: {e}")
@@ -1881,6 +1892,20 @@ def main_logic(sys_args=None):
 
     args = parser.parse_args(args=sys_args)
 
+    # Resolve workspace early for stdio mode so placeholder or invalid values can
+    # be replaced before startup work that depends on a valid workspace path.
+    stdio_workspace_id = None
+    stdio_auto_detect_enabled = args.auto_detect_workspace and not args.no_auto_detect
+    if args.mode == "stdio":
+        stdio_workspace_id = resolve_workspace_id(
+            provided_workspace_id=args.workspace_id,
+            auto_detect=stdio_auto_detect_enabled,
+            start_path=args.workspace_search_start
+        )
+        # Normalize parse args for consistent downstream behavior.
+        if stdio_workspace_id:
+            args.workspace_id = stdio_workspace_id
+
     # --- Startup Provisioning (workspace-scoped caches) ---
     # If the server is started with an explicit --workspace_id (e.g. via
     # [`context_portal_aimed/portal_launcher.py`](context_portal_aimed/portal_launcher.py:884)),
@@ -1952,17 +1977,10 @@ def main_logic(sys_args=None):
         uvicorn.run(app, host=args.host, port=args.port)
     elif args.mode == "stdio":
         log.info(f"Starting ConPort in STDIO mode with workspace detection enabled")
+        effective_workspace_id = stdio_workspace_id or args.workspace_id
 
-        # Resolve workspace ID using the new detection system
-        auto_detect_enabled = args.auto_detect_workspace and not args.no_auto_detect
-        effective_workspace_id = resolve_workspace_id(
-            provided_workspace_id=args.workspace_id,
-            auto_detect=auto_detect_enabled,
-            start_path=args.workspace_search_start
-        )
-        
         # Log detection details for debugging
-        if auto_detect_enabled:
+        if stdio_auto_detect_enabled:
             detector = WorkspaceDetector(args.workspace_search_start)
             detection_info = detector.get_detection_info()
             log.info(f"Workspace detection details: {detection_info}")
@@ -1997,7 +2015,7 @@ def main_logic(sys_args=None):
             # However, `workspace_id` is not a standard FastMCP setting for `run()`.
             # It's expected to be part of the tool call parameters.
             # The primary role of --workspace_id for stdio here is for the IDE's launch config.
-            conport_mcp.run(transport="stdio")
+            conport_mcp.run(transport="stdio", show_banner=False)
         except Exception as e:
             log.exception("Error running FastMCP in STDIO mode")
             sys.exit(1)

@@ -9,10 +9,13 @@ workspace_id parameters.
 import os
 import json
 import logging
+import re
 from pathlib import Path
 from typing import Optional, List, Dict, Any
 
 log = logging.getLogger(__name__)
+
+_WORKSPACE_PLACEHOLDER_RE = re.compile(r"^\$\{[^{}]+\}$")
 
 
 class WorkspaceDetector:
@@ -317,6 +320,40 @@ class WorkspaceDetector:
         return info
 
 
+def _looks_like_workspace_placeholder(workspace_id: str) -> bool:
+    """Return True when a workspace path is likely an unexpanded client placeholder."""
+    return bool(_WORKSPACE_PLACEHOLDER_RE.match((workspace_id or "").strip()))
+
+
+def _normalize_workspace_path(candidate: str, start_path: Optional[str] = None) -> Optional[str]:
+    """
+    Normalize and validate a provided workspace candidate path.
+
+    Returns an absolute workspace path string when the candidate resolves to
+    an existing directory; otherwise returns None.
+    """
+    if not candidate:
+        return None
+
+    normalized = os.path.expandvars(os.path.expanduser(str(candidate).strip().strip("'\"")))
+    if not normalized:
+        return None
+
+    candidate_path = Path(normalized)
+    if not candidate_path.is_absolute():
+        base = Path(start_path or os.getcwd())
+        candidate_path = (base / candidate_path)
+
+    try:
+        candidate_path = candidate_path.expanduser()
+    except Exception:
+        pass
+
+    if candidate_path.exists() and candidate_path.is_dir():
+        return str(candidate_path.resolve())
+    return None
+
+
 def auto_detect_workspace(start_path: Optional[str] = None) -> str:
     """
     Convenience function for automatic workspace detection.
@@ -353,14 +390,25 @@ def resolve_workspace_id(provided_workspace_id: Optional[str] = None,
     Returns:
         Resolved workspace ID
     """
-    # If explicitly provided, use it (but handle special cases)
+    # If explicitly provided, validate it first (but handle special cases)
     if provided_workspace_id:
-        # Handle VSCode variable that wasn't expanded
-        if provided_workspace_id == "${workspaceFolder}":
-            log.warning("workspace_id was literal '${workspaceFolder}', falling back to auto-detection")
+        if _looks_like_workspace_placeholder(provided_workspace_id):
+            log.warning(
+                "workspace_id looks like an unexpanded placeholder "
+                f"({provided_workspace_id}), falling back to auto-detection"
+            )
         else:
-            log.debug(f"Using provided workspace_id: {provided_workspace_id}")
-            return provided_workspace_id
+            normalized_workspace_id = _normalize_workspace_path(
+                provided_workspace_id,
+                start_path=start_path,
+            )
+            if normalized_workspace_id:
+                log.debug(f"Using provided workspace_id: {normalized_workspace_id}")
+                return normalized_workspace_id
+            log.warning(
+                "workspace_id was provided but did not resolve to an existing directory: "
+                f"{provided_workspace_id}. Falling back to auto-detection."
+            )
     
     # Auto-detect if enabled
     if auto_detect:

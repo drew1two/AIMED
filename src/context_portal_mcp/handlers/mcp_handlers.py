@@ -582,14 +582,25 @@ def handle_get_system_patterns(args: models.GetSystemPatternsArgs) -> List[Dict[
         log.exception(f"Unexpected error in get_system_patterns for workspace {args.workspace_id}")
         raise ContextPortalError(f"Unexpected error in get_system_patterns: {e}")
 
-def handle_get_conport_schema(args: models.GetConportSchemaArgs) -> Dict[str, Dict[str, Any]]:
+def handle_get_conport_schema(
+    args: models.GetConportSchemaArgs,
+    registered_tool_schemas: Optional[Dict[str, Dict[str, Any]]] = None,
+) -> Dict[str, Dict[str, Any]]:
     """
     Handles the 'get_conport_schema' MCP tool.
     Retrieves the JSON schema for all registered ConPort tools.
     Assumes 'args' is an already validated Pydantic model instance.
+
+    When `registered_tool_schemas` is provided (derived from the live FastMCP
+    tool registry), it is returned directly so the reported schema can never
+    drift from the set of actually-callable tools. This is the preferred path.
+    The static `models.TOOL_ARG_MODELS` map is used only as a fallback; it
+    under-reports tools registered with inline (non-Pydantic) signatures.
     """
     try:
         log.info(f"Handling get_conport_schema for workspace {args.workspace_id}")
+        if registered_tool_schemas:
+            return dict(sorted(registered_tool_schemas.items()))
         tool_schemas: Dict[str, Dict[str, Any]] = {}
         for tool_name, model_class in models.TOOL_ARG_MODELS.items():
             # Ensure model_class is a Pydantic BaseModel before calling model_json_schema
